@@ -2,22 +2,23 @@
 import { useRouter } from 'next/navigation'
 import { FormEvent, useState } from 'react'
 import { useUserStore } from '../store/useStore'
-import PostLogin from '../http/PostLogin'
+import { useAuth } from '../hook/useAuth'
 
 const Login = () => {
   const router = useRouter()
-  const [login, setLogin] = useState('')
+  const [userLogin, setUserLogin] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [process, setProcess] = useState(false)
   const { getUser } = useUserStore()
+  const { login } = useAuth()
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     setProcess(true)
 
     try {
-      await PostLogin(login, password)
+      await login(userLogin, password)
       getUser()
       router.replace('/main')
     } catch {
@@ -36,8 +37,8 @@ const Login = () => {
             className="w-[280px] h-[38px] border-1 rounded-[5px]"
             id="login"
             type="text"
-            value={login}
-            onChange={(e) => setLogin(e.target.value)}
+            value={userLogin}
+            onChange={(e) => setUserLogin(e.target.value)}
             required
           />
         </div>
