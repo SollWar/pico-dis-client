@@ -1,26 +1,32 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* Псевдокласс, задающий тему для вашего контейнера */
+.overlay-theme {
+  /* общая толщина скроллбара */
+  --os-size: 4px;
+  /* padding вокруг (убираем любые отступы) */
+  --os-padding-perpendicular: 0;
+  --os-padding-axis: 0;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  /* трек — прозрачный */
+  --os-track-bg: transparent;
+  --os-track-bg-hover: transparent;
+  --os-track-bg-active: transparent;
+  --os-track-border: none;
+  --os-track-border-hover: none;
+  --os-track-border-active: none;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+  /* сам «ползунок» — полупрозрачный, тонкий, без рамки */
+  --os-handle-bg: rgba(0, 0, 0, 0.3);
+  --os-handle-bg-hover: rgba(0, 0, 0, 0.5);
+  --os-handle-bg-active: rgba(0, 0, 0, 0.6);
+  --os-handle-border: none;
+  --os-handle-border-hover: none;
+  --os-handle-border-active: none;
+  --os-handle-border-radius: 2px;
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  /* углы (там, где пересекаются горизонтальный и вертикальный) */
+  --os-corner-bg: transparent;
 }
+/* Все CSS-переменные доступны из документации OverlayScrollbars */
+/* — например: --os-track-bg, --os-handle-bg, --os-handle-border-radius и т.д. :contentReference[oaicite:1]{index=1} */
