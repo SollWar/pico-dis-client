@@ -8,24 +8,38 @@ import { useTextRoom } from '../hook/useTextRoom'
 import { useUserDataStore } from '../store/useStore'
 import { useRouter, useSearchParams } from 'next/navigation'
 import TextRoom from './TextRoom'
+import Modal from '../components/Modal'
+import CreateRoomModal from './CreateRoomModal'
 
 const MainPage = () => {
   const router = useRouter()
   const { rooms, user } = useUserDataStore()
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const { setRoom, messages, sendMessage } = useTextRoom()
-  const switchSide = () => {
-    setSidebarOpen(!sidebarOpen)
-  }
+  const [createRoomModal, setCreateRoomModal] = useState(false)
+
   const searchParams = useSearchParams()
   const roomIdParams = searchParams.get('id')
   const room = findRoomById(rooms, roomIdParams)
+
+  const createRoom = () => {
+    setCreateRoomModal(true)
+  }
+
+  const callbackCrateRoomModal = () => {
+    setCreateRoomModal(false)
+  }
+
   const testClick = (id: string) => {
     if (roomIdParams !== id) {
       const params = new URLSearchParams(searchParams.toString())
       params.set('id', id)
       router.push(`/?${params.toString()}`)
     }
+  }
+
+  const switchSide = () => {
+    setSidebarOpen(!sidebarOpen)
   }
 
   useEffect(() => {
@@ -36,6 +50,13 @@ const MainPage = () => {
 
   return (
     <div>
+      <CreateRoomModal
+        isOpen={createRoomModal}
+        onClose={() => {
+          setCreateRoomModal(false)
+        }}
+        callback={() => callbackCrateRoomModal()}
+      />
       <div className="h-screen flex overflow-hidden">
         {/* Sidebar */}
         <aside
@@ -81,12 +102,16 @@ const MainPage = () => {
                 <Category
                   onClick={(id) => testClick(id)}
                   rooms={rooms as Room[]}
+                  selectedId={roomIdParams!}
                   roomType={'text'}
                 />
               </div>
-              <div className="h-[34px] mb-0.5 ms-2.5 me-2.5 flex items-center border-1 cursor-pointer">
+              <button
+                onClick={createRoom}
+                className="h-[34px] mb-0.5 ms-2.5 me-2.5 flex items-center border-1 cursor-pointer"
+              >
                 Создать комнату
-              </div>
+              </button>
             </div>
           </OverlayScrollbarsComponent>
         </aside>
