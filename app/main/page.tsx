@@ -1,23 +1,38 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { messages } from './Moke'
 import Category from './Category'
 import { OverlayScrollbarsComponent } from 'overlayscrollbars-react'
 import 'overlayscrollbars/styles/overlayscrollbars.css'
-import MessageView from './MessageView'
-import { Room } from '../types'
-import { useGlobalLoader } from '../hook/useGlobalLoader'
-import { useRooms } from '../hook/useRooms'
+import { findRoomById, Room } from '../types'
+import { useTextRoom } from '../hook/useTextRoom'
 import { useUserDataStore } from '../store/useStore'
+import { useRouter, useSearchParams } from 'next/navigation'
+import TextRoom from './TextRoom'
 
 const MainPage = () => {
-  const { rooms } = useUserDataStore()
+  const router = useRouter()
+  const { rooms, user } = useUserDataStore()
   const [sidebarOpen, setSidebarOpen] = useState(true)
-  const [input, setInput] = useState('')
-  const { roomClick } = useRooms()
+  const { setRoom, messages, sendMessage } = useTextRoom()
   const switchSide = () => {
     setSidebarOpen(!sidebarOpen)
   }
+  const searchParams = useSearchParams()
+  const roomIdParams = searchParams.get('id')
+  const room = findRoomById(rooms, roomIdParams)
+  const testClick = (id: string) => {
+    if (roomIdParams !== id) {
+      const params = new URLSearchParams(searchParams.toString())
+      params.set('id', id)
+      router.push(`/?${params.toString()}`)
+    }
+  }
+
+  useEffect(() => {
+    if (roomIdParams) {
+      setRoom(roomIdParams)
+    }
+  }, [roomIdParams])
 
   return (
     <div>
@@ -51,7 +66,7 @@ const MainPage = () => {
               <div className="flex flex-row justify-between">
                 <div className="flex flex-row items-center">
                   <div className="w-[26px] h-[26px] m-1 bg-gray-500"></div>
-                  <div className="ms-2 text-[20px]">Z3RG</div>
+                  <div className="ms-2 text-[20px]">{user?.login}</div>
                 </div>
                 {sidebarOpen ? (
                   <button
@@ -64,7 +79,7 @@ const MainPage = () => {
               </div>
               <div className="mt-1">
                 <Category
-                  onClick={(id) => roomClick(id)}
+                  onClick={(id) => testClick(id)}
                   rooms={rooms as Room[]}
                   roomType={'text'}
                 />
@@ -90,59 +105,21 @@ const MainPage = () => {
                 ></button>
               )}
               <div className="flex items-center w-[26px] h-[26px] m-1 text-[20px]">
-                Спам
+                {room?.name ?? 'MiniDis'}
               </div>
             </div>
           </div>
 
           {/* Контейнер сообщений с прокруткой */}
-          <div className="flex-1 min-h-0 overflow-hidden px-2.5 pb-2.5">
-            <OverlayScrollbarsComponent
-              className="h-full overlay-theme border-1 bg-white"
-              options={{
-                scrollbars: {
-                  visibility: 'auto',
-                  autoHide: 'scroll',
-                },
-              }}
-            >
-              <div className="flex flex-col-reverse">
-                {messages.map((message, index) => (
-                  <MessageView
-                    key={index}
-                    currentUserId={'1'}
-                    message={message}
-                  />
-                ))}
-              </div>
-            </OverlayScrollbarsComponent>
-          </div>
+          {room && (
+            <TextRoom
+              send={(content) => sendMessage(content)}
+              currentUserId={user?.id as string}
+              messages={messages}
+            />
+          )}
 
           {/* Нижний фиксированный блок (поле ввода) */}
-          <div className="flex-shrink-0 px-2.5 pb-2.5 mb-2.5">
-            <div className="h-[42px]">
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault()
-                }}
-                className="grid grid-cols-[1fr_auto] gap-2 w-full"
-              >
-                <input
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  className="w-full border p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Введите сообщение..."
-                />
-                <button
-                  type="submit"
-                  className="bg-blue-500 text-white h-[42px] w-[42px] flex justify-center cursor-pointer"
-                  disabled={false}
-                >
-                  <img src="/send.svg" alt="Отправить" width="32" height="32" />
-                </button>
-              </form>
-            </div>
-          </div>
         </main>
       </div>
     </div>

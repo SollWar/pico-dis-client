@@ -22,7 +22,7 @@ const Category = ({ roomType, rooms, onClick }: CategoryProps) => {
       <div className="h-[34px] mt-0.5 mb-0.5 ms-2.5 me-2.5 flex items-center border-1 cursor-pointer">
         {getRoomTypeLabel(roomType)}
       </div>
-      {getRoomsByType(roomType, rooms).map((room, index) => (
+      {getRoomsByType(roomType, rooms).map((room) => (
         <button
           onClick={() => onClick(room.id)}
           className="h-[34px] w-[219px] mt-0.5 mb-0.5 ms-5 me-2.5 flex items-center border-1 cursor-pointer"

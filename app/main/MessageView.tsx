@@ -1,8 +1,24 @@
-import { Message, userNameForId } from './Moke'
+import { Message } from '../types'
 
 interface MessageProps {
   message: Message
   currentUserId: string
+}
+
+const formatPostgresDate = (dateString: string): string => {
+  const date = new Date(dateString) // Преобразуем строку в Date
+
+  return new Intl.DateTimeFormat('ru-RU', {
+    day: '2-digit',
+    month: '2-digit',
+    year: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h23',
+  })
+    .format(date)
+    .replace(',', '') // Убираем запятую для ru-RU
 }
 
 const MessageView = ({ message, currentUserId }: MessageProps) => {
@@ -16,10 +32,10 @@ const MessageView = ({ message, currentUserId }: MessageProps) => {
       >
         <div className="flex flex-row items-baseline pe-2">
           <div className={`text-[16px] font-semibold text-${textColor}`}>
-            {userNameForId(message.user_id)}
+            {message.user_id}
           </div>
           <div className={`ms-1.5 text-[10px] text-${textColor}`}>
-            {message.created_at}
+            {formatPostgresDate(message.created_at.toString())}
           </div>
         </div>
         <div className={`break-words mt-0.5 text-${textColor}`}>

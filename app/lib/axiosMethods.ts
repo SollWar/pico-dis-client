@@ -1,10 +1,9 @@
 import axios from 'axios'
 
-export const axiosPost = async <T, Args extends Record<string, any>>(
+export const axiosPost = async <T, Args extends Record<string, unknown>>(
   args: Args,
   path: string
 ): Promise<T> => {
-  // Убрали `| null`, теперь при ошибке будет исключение
   try {
     const { data } = await axios.post<T>(
       path,
@@ -18,19 +17,21 @@ export const axiosPost = async <T, Args extends Record<string, any>>(
   } catch (error) {
     if (axios.isAxiosError(error)) {
       if (error.response) {
-        // Пробрасываем ошибку с сервера (например, 401, 500)
-        console.error(error.response.data.message || 'Неверные данные')
-        throw new Error(error.response.data.message || 'Неверные данные')
+        const errorMessage =
+          typeof error.response.data?.message === 'string'
+            ? error.response.data.message
+            : 'Неверные данные'
+        console.error(errorMessage)
+        throw new Error(errorMessage)
       } else if (error.request) {
         console.error('Нет ответа от сервера')
         throw new Error('Нет ответа от сервера')
       } else {
-        console.error('Ошибка при отправке запроса')
+        console.error('Ошибка при отправке запроса:', error.message)
         throw new Error('Ошибка при отправке запроса')
       }
-    } else {
-      console.error('Неизвестная ошибка')
-      throw new Error('Неизвестная ошибка')
     }
+    console.error('Неизвестная ошибка:', error)
+    throw new Error('Неизвестная ошибка')
   }
 }
