@@ -1,16 +1,13 @@
 import { useEffect, useState } from 'react'
 import { useMainSocketStore } from '../store/useMainSocketStore'
-import { useUserStore } from '../store/useStore'
+import { useUserDataStore } from '../store/useStore'
 
 export const useGlobalLoader = () => {
   const [loaded, setLoaded] = useState(false)
-  const { user, rooms, getUser, setUserRooms } = useUserStore()
+  const { user, rooms, setUser, setUserRooms } = useUserDataStore()
   const { socket } = useMainSocketStore()
 
   useEffect(() => {
-    if (!user) {
-      getUser()
-    }
     if (user && rooms) {
       setLoaded(true)
     }
@@ -29,6 +26,10 @@ export const useGlobalLoader = () => {
 
     socket.on('getRooms', (rooms) => {
       setUserRooms(rooms)
+    })
+
+    socket.on('getUser', (user) => {
+      setUser(user)
     })
 
     socket.on('connect_error', (err) => {

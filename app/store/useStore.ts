@@ -5,7 +5,7 @@ import { create } from 'zustand'
 interface UserState {
   user: PublicUser | null
   rooms: Room[] | null
-  getUser: () => void
+  setUser: (user: PublicUser) => void
   setUserRooms: (rooms: Room[]) => void
 }
 
@@ -55,14 +55,14 @@ const getUserData = async (): Promise<PublicUser | null> => {
   }
 }
 
-export const useUserStore = create<UserState>((set) => ({
+export const useUserDataStore = create<UserState>((set) => ({
   user: null,
   rooms: null,
-  getUser: async () => {
-    const userData = await getUserData()
-    if (userData) {
-      set({ user: userData })
-    }
+  setUser(user) {
+    set((state) => ({
+      ...state,
+      user,
+    }))
   },
   setUserRooms: (rooms) => {
     set((state) => ({

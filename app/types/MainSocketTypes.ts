@@ -1,4 +1,4 @@
-import { Room } from '.'
+import { PublicUser, Room } from '.'
 
 export interface MainClientToServerEvents {
   setRoom: (id: string) => void
@@ -6,4 +6,5 @@ export interface MainClientToServerEvents {
 
 export interface MainServerToClientEvents {
   getRooms: (rooms: Room[]) => void
+  getUser: (user: PublicUser) => void
 }

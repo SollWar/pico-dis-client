@@ -1,7 +1,6 @@
 'use client'
 import { useRouter } from 'next/navigation'
-import { FormEvent, useState } from 'react'
-import { useUserStore } from '../store/useStore'
+import { FormEvent, useEffect, useState } from 'react'
 import { useAuth } from '../hook/useAuth'
 
 const Reg = () => {
@@ -11,25 +10,47 @@ const Reg = () => {
   const [secondPassword, setSecondPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [process, setProcess] = useState(false)
-  const { getUser } = useUserStore()
+  const [isPageLoaded, setIsPageLoaded] = useState(false)
   const { login, register } = useAuth()
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const handleLoad = () => setIsPageLoaded(true)
+      window.addEventListener('load', handleLoad)
+
+      if (document.readyState === 'complete') {
+        setIsPageLoaded(true)
+      }
+
+      return () => window.removeEventListener('load', handleLoad)
+    }
+  }, [])
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
+    setError('')
 
     if (password !== secondPassword) {
       setError('Пароли не совпадают')
       return
     }
 
+    setProcess(true)
+
     try {
-      setProcess(true)
       await register(userLogin, password)
       await login(userLogin, password)
-      getUser()
       router.replace('/main')
-    } catch {
-      setError('Ошибка при регистрации')
+    } catch (error) {
+      let errorMessage = ''
+      if (error instanceof Error) {
+        if (error.message === 'Неверные данные') {
+          errorMessage = 'Пользователь уже существует'
+        } else {
+          errorMessage = 'Неизвестная ошибка'
+        }
+      }
+      setError(errorMessage)
       setProcess(false)
     }
   }
@@ -52,6 +73,7 @@ const Reg = () => {
         <div className="flex flex-col mb-1.5">
           <label htmlFor="password">Пароль</label>
           <input
+            disabled={process || !isPageLoaded}
             className="w-[280px] h-[38px] border-1 rounded-[5px]"
             id="password"
             type="password"
@@ -63,6 +85,7 @@ const Reg = () => {
         <div className="flex flex-col mb-6">
           <label htmlFor="secondPassword">Повторите пароль</label>
           <input
+            disabled={process || !isPageLoaded}
             className="w-[280px] h-[38px] border-1 rounded-[5px]"
             id="secondPassword"
             type="password"
@@ -75,12 +98,14 @@ const Reg = () => {
 
         <button
           style={{
-            background: process ? 'gray' : '#2B7FFF',
+            background: process || !isPageLoaded ? 'gray' : '#2B7FFF',
+            cursor: process || !isPageLoaded ? 'progress' : 'pointer',
           }}
+          disabled={process || !isPageLoaded}
           className=" w-[280px] h-[38px] mb-14 rounded-[5px] bg-[#2B7FFF] text-white cursor-pointer"
           type="submit"
         >
-          Зарегистрироваться
+          {process || !isPageLoaded ? 'Загрузка...' : 'Зарегистрироваться'}
         </button>
       </form>
     </div>

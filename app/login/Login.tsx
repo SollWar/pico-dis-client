@@ -1,7 +1,6 @@
 'use client'
 import { useRouter } from 'next/navigation'
-import { FormEvent, useState } from 'react'
-import { useUserStore } from '../store/useStore'
+import { FormEvent, useEffect, useState } from 'react'
 import { useAuth } from '../hook/useAuth'
 
 const Login = () => {
@@ -10,19 +9,40 @@ const Login = () => {
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [process, setProcess] = useState(false)
-  const { getUser } = useUserStore()
+  const [isPageLoaded, setIsPageLoaded] = useState(false)
   const { login } = useAuth()
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const handleLoad = () => setIsPageLoaded(true)
+      window.addEventListener('load', handleLoad)
+
+      if (document.readyState === 'complete') {
+        setIsPageLoaded(true)
+      }
+
+      return () => window.removeEventListener('load', handleLoad)
+    }
+  }, [])
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     setProcess(true)
+    setError('') // Сбрасываем предыдущую ошибку
 
     try {
       await login(userLogin, password)
-      getUser()
       router.replace('/main')
-    } catch {
-      setError('Неверный логин/пароль')
+    } catch (error) {
+      let errorMessage = ''
+      if (error instanceof Error) {
+        if (error.message === 'Неверные данные') {
+          errorMessage = 'Неправильный логин/пароль'
+        } else {
+          errorMessage = 'Неизвестная ошибка'
+        }
+      }
+      setError(errorMessage)
       setProcess(false)
     }
   }
@@ -34,6 +54,7 @@ const Login = () => {
         <div className="flex flex-col mb-1.5">
           <label htmlFor="login">Логин</label>
           <input
+            disabled={process || !isPageLoaded}
             className="w-[280px] h-[38px] border-1 rounded-[5px]"
             id="login"
             type="text"
@@ -45,6 +66,7 @@ const Login = () => {
         <div className="flex flex-col mb-6">
           <label htmlFor="password">Пароль</label>
           <input
+            disabled={process || !isPageLoaded}
             className="w-[280px] h-[38px] border-1 rounded-[5px]"
             id="password"
             type="password"
@@ -57,14 +79,14 @@ const Login = () => {
 
         <button
           style={{
-            background: process ? 'gray' : '#2B7FFF',
-            cursor: process ? 'progress' : 'pointer',
+            background: process || !isPageLoaded ? 'gray' : '#2B7FFF',
+            cursor: process || !isPageLoaded ? 'progress' : 'pointer',
           }}
-          disabled={process}
+          disabled={process || !isPageLoaded}
           className=" w-[280px] h-[38px] mb-14 rounded-[5px] text-white"
           type="submit"
         >
-          Войти
+          {process || !isPageLoaded ? 'Загрузка...' : 'Войти'}
         </button>
       </form>
     </div>

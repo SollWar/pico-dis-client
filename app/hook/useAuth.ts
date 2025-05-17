@@ -1,6 +1,6 @@
-import axios from 'axios'
+import { axiosPost } from '../lib/axiosMethods'
 
-type LoginResult = {
+type AuthResult = {
   id: string
 }
 
@@ -8,28 +8,22 @@ export const useAuth = () => {
   const login = async (
     login: string,
     password: string
-  ): Promise<LoginResult> => {
-    const { data } = await axios.post<LoginResult>(
-      'http://localhost:3001/api/login',
+  ): Promise<AuthResult> => {
+    return await axiosPost<AuthResult, { login: string; password: string }>(
       { login, password },
-      {
-        headers: { 'Content-Type': 'application/json' },
-        withCredentials: true,
-      }
+      'http://localhost:3001/api/login'
     )
-    return data
   }
-  const register = async (login: string, password: string) => {
-    const { data } = await axios.post(
-      'http://localhost:3001/api/reg',
-      { login, password },
-      {
-        headers: { 'Content-Type': 'application/json' },
-        withCredentials: true,
-      }
-    )
 
-    return data
+  const register = async (
+    login: string,
+    password: string
+  ): Promise<AuthResult> => {
+    return await axiosPost<AuthResult, { login: string; password: string }>(
+      { login, password },
+      'http://localhost:3001/api/reg'
+    )
   }
+
   return { login, register }
 }

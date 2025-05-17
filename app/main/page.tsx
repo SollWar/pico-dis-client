@@ -8,10 +8,10 @@ import MessageView from './MessageView'
 import { Room } from '../types'
 import { useGlobalLoader } from '../hook/useGlobalLoader'
 import { useRooms } from '../hook/useRooms'
-import { useUserStore } from '../store/useStore'
+import { useUserDataStore } from '../store/useStore'
 
 const MainPage = () => {
-  const { rooms } = useUserStore()
+  const { rooms } = useUserDataStore()
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [input, setInput] = useState('')
   const { roomClick } = useRooms()
