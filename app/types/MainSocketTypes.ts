@@ -6,6 +6,7 @@ export interface MainClientToServerEvents {
 }
 
 export interface MainServerToClientEvents {
+  test: (usersInVoiceRooms: Record<string, string[]>) => void
   roomCreated: (room_id: string) => void
   getRooms: (rooms: Room[]) => void
   getUser: (user: PublicUser) => void

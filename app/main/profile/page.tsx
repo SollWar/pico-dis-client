@@ -1,6 +1,6 @@
 'use client'
 
-import { useUserDataStore } from '@/app/store/useStore'
+import { useUserDataStore } from '@/app/store/useUserDataStore'
 
 const ProfilePage = () => {
   const { user } = useUserDataStore()

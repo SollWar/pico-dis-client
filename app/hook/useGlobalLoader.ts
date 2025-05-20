@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import { useMainSocketStore } from '../store/useMainSocketStore'
-import { useUserDataStore } from '../store/useStore'
+import { useUserDataStore } from '../store/useUserDataStore'
 
 export const useGlobalLoader = () => {
   const [loaded, setLoaded] = useState(false)
-  const { user, rooms, setUser, setUserRooms } = useUserDataStore()
+  const { user, rooms, setUser, setUserRooms, setUsersInVoiceRooms } =
+    useUserDataStore()
   const { socket } = useMainSocketStore()
 
   useEffect(() => {
@@ -26,6 +27,10 @@ export const useGlobalLoader = () => {
 
     socket.on('getRooms', (rooms) => {
       setUserRooms(rooms)
+    })
+
+    socket.on('test', (usersInVoiceRooms) => {
+      setUsersInVoiceRooms(usersInVoiceRooms)
     })
 
     socket.on('getUser', (user) => {

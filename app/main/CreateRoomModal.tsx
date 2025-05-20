@@ -32,10 +32,6 @@ const CreateRoomModal = ({
       setError('Выберите тип')
       return
     }
-    if (selectedType === 'voice') {
-      setError('Голосовые каналы не доступны')
-      return
-    }
     if (name === '') {
       setError('Введите название')
       return

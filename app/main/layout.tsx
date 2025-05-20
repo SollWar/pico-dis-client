@@ -15,7 +15,7 @@ export default function MainLayout({
   return (
     <>
       <SWorker />
-      <Script src="/rnnoise-runtime.js" strategy="beforeInteractive" />
+      <Script src="/rnnoise-runtime.js" strategy="lazyOnload" />
       <GlobalLoader>{children}</GlobalLoader>
     </>
   )

@@ -14,7 +14,11 @@ const ICE_SERVERS = [
 // Signaling endpoint
 const SIGNALING_URL = 'http://localhost:3001/api/voice'
 
-export default function Voice() {
+interface VoiceProps {
+  roomId: string
+}
+
+export default function Voice({ roomId }: VoiceProps) {
   // Refs for transports, producer, device, socket
   const socketRef = useRef<Socket>(null)
   const deviceRef = useRef<mediasoupClient.Device | null>(null)
@@ -137,7 +141,12 @@ export default function Voice() {
     disconnectSound.current.volume = 0.3
 
     // 1. Connect to socket.io
-    const socket = io(SIGNALING_URL)
+
+    const socket = io(SIGNALING_URL, {
+      withCredentials: true,
+      transports: ['websocket', 'polling'],
+      query: { roomId: roomId },
+    })
     socketRef.current = socket
 
     // Main initialization
@@ -342,7 +351,9 @@ export default function Voice() {
 
   return (
     <div className="flex h-[30px] flex-1 border-1 justify-between items-center ">
-      <div className=" ms-0.5">Игровой</div>
+      <div className=" whitespace-nowrap overflow-hidden text-ellipsis ms-0.5">
+        {roomId}
+      </div>
       <div className="flex justify-end">
         <button className=" cursor-pointer" onClick={toggleMicrophone}>
           {isMicMuted ? (

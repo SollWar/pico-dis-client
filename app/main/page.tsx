@@ -3,9 +3,9 @@ import { useEffect, useState } from 'react'
 import Category from './Category'
 import { OverlayScrollbarsComponent } from 'overlayscrollbars-react'
 import 'overlayscrollbars/styles/overlayscrollbars.css'
-import { findRoomById, Room } from '../types'
+import { findRoomById, Room, RoomType } from '../types'
 import { useTextRoom } from '../hook/useTextRoom'
-import { useUserDataStore } from '../store/useStore'
+import { useUserDataStore } from '../store/useUserDataStore'
 import { useRouter, useSearchParams } from 'next/navigation'
 import TextRoom from './TextRoom'
 import Modal from '../components/Modal'
@@ -15,11 +15,11 @@ import Script from 'next/script'
 
 const MainPage = () => {
   const router = useRouter()
-  const { rooms, user } = useUserDataStore()
+  const { rooms, user, usersInVoiceRooms } = useUserDataStore()
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const { setRoom, messages, sendMessage } = useTextRoom()
   const [createRoomModal, setCreateRoomModal] = useState(false)
-  const [isVoice, setIsVoice] = useState(false)
+  const [voiceRoomId, setVoiceRoomId] = useState<string | null>(null)
 
   const searchParams = useSearchParams()
   const roomIdParams = searchParams.get('id')
@@ -33,11 +33,21 @@ const MainPage = () => {
     setCreateRoomModal(false)
   }
 
-  const testClick = (id: string) => {
-    if (roomIdParams !== id) {
-      const params = new URLSearchParams(searchParams.toString())
-      params.set('id', id)
-      router.push(`/?${params.toString()}`)
+  const roomClick = (id: string, type: string) => {
+    console.log(voiceRoomId)
+    if (type === 'text') {
+      if (roomIdParams !== id) {
+        const params = new URLSearchParams(searchParams.toString())
+        params.set('id', id)
+        router.push(`/?${params.toString()}`)
+      }
+    }
+    if (type === 'voice') {
+      if (voiceRoomId === id) {
+        setVoiceRoomId(null)
+      } else {
+        setVoiceRoomId(id)
+      }
     }
   }
 
@@ -92,7 +102,7 @@ const MainPage = () => {
                   <div className="w-[26px] h-[26px] m-1 bg-gray-500"></div>
                   <div className="ms-2 text-[20px]">{user?.login}</div>
                 </div>
-                {isVoice ? <Voice /> : ''}
+                {voiceRoomId ? <Voice roomId={voiceRoomId} /> : ''}
                 {sidebarOpen ? (
                   <button
                     className="w-[18px] h-[26px] m-1 bg-gray-500 cursor-pointer"
@@ -104,17 +114,25 @@ const MainPage = () => {
               </div>
               <div className="mt-1">
                 <Category
-                  onClick={(id) => testClick(id)}
+                  onClick={(id, type) => roomClick(id, type)}
                   rooms={rooms as Room[]}
                   selectedId={roomIdParams!}
                   roomType={'text'}
+                  usersInVoiceRooms={null}
+                />
+                <Category
+                  onClick={(id, type) => roomClick(id, type)}
+                  rooms={rooms as Room[]}
+                  selectedId={roomIdParams!}
+                  roomType={'voice'}
+                  usersInVoiceRooms={usersInVoiceRooms}
                 />
               </div>
               <button
                 onClick={createRoom}
                 className="h-[34px] mb-0.5 ms-2.5 me-2.5 flex items-center border-1 cursor-pointer"
               >
-                Создать комнату
+                Создать конал
               </button>
             </div>
           </OverlayScrollbarsComponent>
@@ -147,13 +165,6 @@ const MainPage = () => {
               messages={messages}
             />
           )}
-          <button
-            onClick={() => {
-              setIsVoice(!isVoice)
-            }}
-          >
-            Вкл/Выкл чат
-          </button>
           {/* Нижний фиксированный блок (поле ввода) */}
         </main>
       </div>
