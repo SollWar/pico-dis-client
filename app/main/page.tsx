@@ -19,7 +19,7 @@ const MainPage = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const { setRoom, messages, sendMessage } = useTextRoom()
   const [createRoomModal, setCreateRoomModal] = useState(false)
-  const [isVoice, setIsVoice] = useState(true)
+  const [isVoice, setIsVoice] = useState(false)
 
   const searchParams = useSearchParams()
   const roomIdParams = searchParams.get('id')
@@ -147,7 +147,13 @@ const MainPage = () => {
               messages={messages}
             />
           )}
-
+          <button
+            onClick={() => {
+              setIsVoice(!isVoice)
+            }}
+          >
+            Вкл/Выкл чат
+          </button>
           {/* Нижний фиксированный блок (поле ввода) */}
         </main>
       </div>

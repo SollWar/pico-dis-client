@@ -1,6 +1,7 @@
 'use client'
 import * as mediasoupClient from 'mediasoup-client'
 import Script from 'next/script'
+import Image from 'next/image'
 import { useEffect, useRef, useState } from 'react'
 import { io, Socket } from 'socket.io-client'
 
@@ -24,12 +25,43 @@ export default function Voice() {
   const connectSound = useRef<HTMLAudioElement | null>(null)
   const disconnectSound = useRef<HTMLAudioElement | null>(null)
 
+  const [isMicMuted, setIsMicMuted] = useState(false)
+  const [isVolMuted, setIsVolMuted] = useState(false)
+  const streamRef = useRef<MediaStream>(null)
+  const trackRef = useRef<MediaStreamTrack>(null)
+
   const audioContextRef = useRef<AudioContext>(null)
   const rnnoiseNodeRef = useRef<InstanceType<typeof window.RNNoiseNode>>(null)
 
+  const [isVoiceActive, setIsVoiceActive] = useState(false)
+
+  const toggleVolume = async () => {
+    setIsVolMuted(!isVolMuted)
+  }
+
+  // Функция для переключения микрофона
+  const toggleMicrophone = async () => {
+    if (!trackRef.current) return
+
+    try {
+      if (isMicMuted) {
+        // Включаем микрофон
+        trackRef.current.enabled = true
+        setIsMicMuted(false)
+      } else {
+        // Отключаем микрофон
+        trackRef.current.enabled = false
+        setIsMicMuted(true)
+      }
+    } catch (error) {
+      console.error('Ошибка переключения микрофона:', error)
+    }
+  }
+
   const initializeAudioProcessing = async () => {
     try {
-      audioContextRef.current = new AudioContext({ sampleRate: 48000 })
+      //audioContextRef.current = new AudioContext({ sampleRate: 48000 })
+      audioContextRef.current = new AudioContext({})
       await window.RNNoiseNode.register(audioContextRef.current)
       console.log('RNNoise успешно инициализирован')
     } catch (error) {
@@ -92,11 +124,6 @@ export default function Voice() {
     return transport
   }
 
-  // Audio cues
-
-  // State to force re-render if needed
-  const [, setReady] = useState(false)
-
   // Initialize socket, device, and signaling handlers
   useEffect(() => {
     // Only run on client
@@ -116,38 +143,40 @@ export default function Voice() {
     // Main initialization
     async function initDevice() {
       try {
-        await initializeAudioProcessing()
-        // 2. Get RTP capabilities from server
-        const rtpCapabilities = await new Promise<any>((resolve) =>
-          socket.emit('getRtpCapabilities', resolve)
-        )
+        socket.on('connect', async () => {
+          await initializeAudioProcessing()
 
-        // 3. Load mediasoup device
-        const { Device } = await import('mediasoup-client')
-        const device = new Device()
-        await device.load({ routerRtpCapabilities: rtpCapabilities })
-        deviceRef.current = device
+          // 2. Get RTP capabilities from server
+          const rtpCapabilities = await new Promise<any>((resolve) =>
+            socket.emit('getRtpCapabilities', resolve)
+          )
 
-        // 4. Signaling handlers
-        socket.on('userConnected', () =>
-          connectSound.current!.play().catch(() => {})
-        )
-        socket.on('userDisconnected', () =>
-          disconnectSound.current!.play().catch(() => {})
-        )
+          // 3. Load mediasoup device
+          const { Device } = await import('mediasoup-client')
+          const device = new Device()
+          await device.load({ routerRtpCapabilities: rtpCapabilities })
+          deviceRef.current = device
 
-        socket.on(
-          'existingProducers',
-          ({ producerIds }: { producerIds: string[] }) => {
-            producerIds.forEach(createConsumer)
-          }
-        )
-        socket.on('newProducer', ({ producerId }: { producerId: string }) => {
-          createConsumer(producerId)
+          // 4. Signaling handlers
+          socket.on('userConnected', () =>
+            connectSound.current!.play().catch(() => {})
+          )
+          socket.on('userDisconnected', () =>
+            disconnectSound.current!.play().catch(() => {})
+          )
+
+          socket.on(
+            'existingProducers',
+            ({ producerIds }: { producerIds: string[] }) => {
+              producerIds.forEach(createConsumer)
+            }
+          )
+          socket.on('newProducer', ({ producerId }: { producerId: string }) => {
+            createConsumer(producerId)
+          })
+
+          await startBroadcast()
         })
-
-        // Trigger a render so UI knows we’re ready
-        setReady((r) => !r)
       } catch (err) {
         console.error('initDevice error:', err)
       }
@@ -211,6 +240,11 @@ export default function Voice() {
 
     // Cleanup on unmount
     return () => {
+      if (streamRef) {
+        if (streamRef.current) {
+          endCall()
+        }
+      }
       socket.disconnect()
     }
   }, [])
@@ -239,11 +273,13 @@ export default function Voice() {
           noiseSuppression: { ideal: false },
           echoCancellation: { ideal: true },
           autoGainControl: { ideal: false },
-          sampleRate: { ideal: 48000 },
+          // sampleRate: { ideal: 48000 },
         },
       })
 
+      streamRef.current = stream // Сохраняем поток
       const track = stream.getAudioTracks()[0]
+      trackRef.current = track // Сохраняем трек
       const source = audioContextRef.current!.createMediaStreamSource(
         new MediaStream([track])
       )
@@ -282,11 +318,67 @@ export default function Voice() {
     }
   }
 
+  const endCall = async () => {
+    try {
+      // Остановка всех ресурсов
+      trackRef.current?.stop()
+      streamRef.current?.getTracks().forEach((track) => track.stop())
+      sendTransportRef.current?.close()
+      producerRef.current?.close()
+      await audioContextRef.current?.close()
+      socketRef.current?.disconnect()
+
+      // Сброс состояний
+      socketRef.current = null
+      deviceRef.current = null
+      sendTransportRef.current = null
+      producerRef.current = null
+      audioContextRef.current = null
+      rnnoiseNodeRef.current = null
+    } catch (error) {
+      console.error('Ошибка завершения:', error)
+    }
+  }
+
   return (
-    <div className="flex h-[30px] border-1 flex-1">
-      <button className="h-[26px] bg-amber-300" onClick={startBroadcast}>
-        On
-      </button>
+    <div className="flex h-[30px] flex-1 border-1 justify-between items-center ">
+      <div className=" ms-0.5">Игровой</div>
+      <div className="flex justify-end">
+        <button className=" cursor-pointer" onClick={toggleMicrophone}>
+          {isMicMuted ? (
+            <Image
+              src="/mic_off.svg"
+              alt="Включить микрофон"
+              width={26}
+              height={26}
+            />
+          ) : (
+            <Image
+              src="/mic_on.svg"
+              alt="Выключить микрофон"
+              width={26}
+              height={26}
+            />
+          )}
+        </button>
+        <button className=" cursor-pointer" onClick={toggleVolume}>
+          {isVolMuted ? (
+            <Image
+              src="/vol_off.svg"
+              alt="Включить звук"
+              width={26}
+              height={26}
+            />
+          ) : (
+            <Image
+              src="/vol_on.svg"
+              alt="Выключить звук"
+              width={26}
+              height={26}
+            />
+          )}
+        </button>
+      </div>
     </div>
   )
 }

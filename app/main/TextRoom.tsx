@@ -74,7 +74,7 @@ const TextRoom = ({ messages, currentUserId, send }: TextRoomProps) => {
               className="bg-blue-500 text-white h-[42px] w-[42px] flex justify-center cursor-pointer"
               disabled={false}
             >
-              <Image src="/send.svg" alt="Отправить" width="32" height="32" />
+              <Image src="/send.svg" alt="Отправить" width={32} height={32} />
             </button>
           </form>
         </div>

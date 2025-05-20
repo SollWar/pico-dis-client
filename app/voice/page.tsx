@@ -29,7 +29,7 @@ export default function VoicePage() {
 
   const initializeAudioProcessing = async () => {
     try {
-      audioContextRef.current = new AudioContext({ sampleRate: 48000 })
+      audioContextRef.current = new AudioContext({})
       await window.RNNoiseNode.register(audioContextRef.current)
       console.log('RNNoise успешно инициализирован')
     } catch (error) {
@@ -233,13 +233,15 @@ export default function VoicePage() {
 
       // 2. Get audio track and produce
       // Захват аудиопотока
+      console.log(navigator.mediaDevices.getSupportedConstraints())
+      // 2. Get audio track and produce
+      // Захват аудиопотока
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           channelCount: { ideal: 1 },
           noiseSuppression: { ideal: false },
           echoCancellation: { ideal: true },
           autoGainControl: { ideal: false },
-          sampleRate: { ideal: 48000 },
         },
       })
 
