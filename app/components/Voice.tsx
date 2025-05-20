@@ -167,12 +167,17 @@ export default function Voice({ roomId }: VoiceProps) {
           deviceRef.current = device
 
           // 4. Signaling handlers
-          socket.on('userConnected', () =>
-            connectSound.current!.play().catch(() => {})
-          )
-          socket.on('userDisconnected', () =>
-            disconnectSound.current!.play().catch(() => {})
-          )
+          socket.on('userConnected', ({ userRoomId }) => {
+            console.log(userRoomId)
+            if (userRoomId === roomId) {
+              connectSound.current!.play().catch(() => {})
+            }
+          })
+          socket.on('userDisconnected', ({ userRoomId }) => {
+            if (userRoomId === roomId) {
+              disconnectSound.current!.play().catch(() => {})
+            }
+          })
 
           socket.on(
             'existingProducers',

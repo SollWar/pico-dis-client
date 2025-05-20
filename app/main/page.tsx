@@ -20,6 +20,7 @@ const MainPage = () => {
   const { setRoom, messages, sendMessage } = useTextRoom()
   const [createRoomModal, setCreateRoomModal] = useState(false)
   const [voiceRoomId, setVoiceRoomId] = useState<string | null>(null)
+  const [pendingRoomId, setPendingRoomId] = useState<string | null>(null)
 
   const searchParams = useSearchParams()
   const roomIdParams = searchParams.get('id')
@@ -33,6 +34,33 @@ const MainPage = () => {
     setCreateRoomModal(false)
   }
 
+  const handleVoiceToggle = (id: string) => {
+    if (voiceRoomId === id) {
+      setVoiceRoomId(null) // выход
+      console.log('exit')
+    } else if (!voiceRoomId) {
+      setVoiceRoomId(id) // вход
+      console.log('connect')
+    } else {
+      // Переключение — сначала отключаем
+      setVoiceRoomId(null)
+      setPendingRoomId(id)
+      console.log('switch')
+    }
+  }
+
+  // "догружаем" новый ID после размонтирования
+  useEffect(() => {
+    if (voiceRoomId === null && pendingRoomId) {
+      const timeout = setTimeout(() => {
+        setVoiceRoomId(pendingRoomId)
+        setPendingRoomId(null)
+      }, 0) // 0 или 50мс, если нужно точно дождаться размонтирования
+
+      return () => clearTimeout(timeout)
+    }
+  }, [voiceRoomId, pendingRoomId])
+
   const roomClick = (id: string, type: string) => {
     console.log(voiceRoomId)
     if (type === 'text') {
@@ -43,11 +71,7 @@ const MainPage = () => {
       }
     }
     if (type === 'voice') {
-      if (voiceRoomId === id) {
-        setVoiceRoomId(null)
-      } else {
-        setVoiceRoomId(id)
-      }
+      handleVoiceToggle(id)
     }
   }
 
