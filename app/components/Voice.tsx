@@ -4,6 +4,7 @@ import Script from 'next/script'
 import Image from 'next/image'
 import { useEffect, useRef, useState } from 'react'
 import { io, Socket } from 'socket.io-client'
+import { debounce, throttle } from 'lodash'
 
 // STUN servers
 const ICE_SERVERS = [
@@ -37,7 +38,7 @@ export default function Voice({ roomId }: VoiceProps) {
   const audioContextRef = useRef<AudioContext>(null)
   const rnnoiseNodeRef = useRef<InstanceType<typeof window.RNNoiseNode>>(null)
 
-  const [isVoiceActive, setIsVoiceActive] = useState(false)
+  const [vadLevel, setVadLevel] = useState<number>(0)
 
   const toggleVolume = async () => {
     setIsVolMuted(!isVolMuted)
@@ -301,32 +302,43 @@ export default function Voice({ roomId }: VoiceProps) {
       rnnoiseNodeRef.current = new window.RNNoiseNode(audioContextRef.current!)
       source.connect(rnnoiseNodeRef.current)
 
+      // 1. Создаем выходной поток для WebRTC
       const destination =
         audioContextRef.current!.createMediaStreamDestination()
       rnnoiseNodeRef.current.connect(destination)
 
-      // Индикатор VAD(Детектор голоса)?
-      rnnoiseNodeRef.current.onstatus = (data) => {
-        const vadProbElement = document.getElementById('vadProb')
-        if (vadProbElement) {
-          vadProbElement.style.width = data.vadProb * 100 + '%'
-        }
+      // 2. Берем трек из destination (этот трек будет отправляться через transport)
+      const sendTrack = destination.stream.getAudioTracks()[0]
+
+      // 3. VAD-обработчик (управляем sendTrack, а не исходным треком микрофона!)
+      const handleVadUpdate = (vadLevel: number) => {
+        const shouldMute = vadLevel < 0.5
+        sendTrack.enabled = !shouldMute // <-- Ключевое изменение!
       }
 
-      // Анимационный цикл
-      const updateLoop = () => {
-        requestAnimationFrame(() => {
-          rnnoiseNodeRef.current?.update(true)
-          updateLoop()
-        })
-      }
-      updateLoop()
+      // 4. Подключаем throttled VAD-обработчик
+      rnnoiseNodeRef.current.onstatus = throttle(
+        (data: { vadProb: number }) => {
+          const vadLevel = data.vadProb * 100
+          setVadLevel(vadLevel)
+          handleVadUpdate(vadLevel)
+        },
+        20 // Задержка в мс
+      )
 
+      // 5. Анимационный цикл RNNoise
+      const vadUpdateInterval = setInterval(() => {
+        rnnoiseNodeRef.current?.update(true)
+      }, 20)
+
+      vadUpdateInterval
+
+      // 6. Отправляем трек в серверный транспорт (sendTrack вместо оригинального трека)
       const producer = await sendTransport.produce({
-        track: destination.stream.getAudioTracks()[0],
+        track: sendTrack, // <-- Используем обработанный трек
       })
       producerRef.current = producer
-      connectSound.current!.play().catch(() => {})
+      connectSound.current?.play().catch(() => {})
     } catch (err) {
       console.error('startBroadcast error:', err)
     }
@@ -356,8 +368,15 @@ export default function Voice({ roomId }: VoiceProps) {
 
   return (
     <div className="flex h-[30px] flex-1 border-1 justify-between items-center ">
-      <div className=" whitespace-nowrap overflow-hidden text-ellipsis ms-0.5">
-        {roomId}
+      <div className="flex-1 whitespace-nowrap overflow-hidden text-ellipsis ms-0.5">
+        <div
+          style={{
+            width: `${vadLevel.toFixed(0)}%`,
+            background: 'green',
+          }}
+        >
+          {roomId}
+        </div>
       </div>
       <div className="flex justify-end">
         <button className=" cursor-pointer" onClick={toggleMicrophone}>
