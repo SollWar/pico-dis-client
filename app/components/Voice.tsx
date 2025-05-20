@@ -299,6 +299,16 @@ export default function Voice({ roomId }: VoiceProps) {
         new MediaStream([track])
       )
 
+      document.addEventListener('visibilitychange', () => {
+        console.log('Засыпает!...')
+        if (
+          document.visibilityState === 'visible' &&
+          audioContextRef.current?.state === 'suspended'
+        ) {
+          audioContextRef.current.resume().catch(console.warn)
+        }
+      })
+
       rnnoiseNodeRef.current = new window.RNNoiseNode(audioContextRef.current!)
       source.connect(rnnoiseNodeRef.current)
 
@@ -327,11 +337,9 @@ export default function Voice({ roomId }: VoiceProps) {
       )
 
       // 5. Анимационный цикл RNNoise
-      const vadUpdateInterval = setInterval(() => {
-        rnnoiseNodeRef.current?.update(true)
-      }, 20)
-
-      vadUpdateInterval
+      // const vadUpdateInterval = setInterval(() => {
+      //   rnnoiseNodeRef.current?.update(true)
+      // }, 20)
 
       // 6. Отправляем трек в серверный транспорт (sendTrack вместо оригинального трека)
       const producer = await sendTransport.produce({
