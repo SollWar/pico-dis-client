@@ -1,3 +1,4 @@
+import Script from 'next/script'
 import GlobalLoader from '../components/GlobalLoader'
 import SWorker from './sworker'
 
@@ -14,6 +15,7 @@ export default function MainLayout({
   return (
     <>
       <SWorker />
+      <Script src="/rnnoise-runtime.js" strategy="beforeInteractive" />
       <GlobalLoader>{children}</GlobalLoader>
     </>
   )

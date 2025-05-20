@@ -10,6 +10,8 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import TextRoom from './TextRoom'
 import Modal from '../components/Modal'
 import CreateRoomModal from './CreateRoomModal'
+import Voice from '../components/Voice'
+import Script from 'next/script'
 
 const MainPage = () => {
   const router = useRouter()
@@ -17,6 +19,7 @@ const MainPage = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const { setRoom, messages, sendMessage } = useTextRoom()
   const [createRoomModal, setCreateRoomModal] = useState(false)
+  const [isVoice, setIsVoice] = useState(true)
 
   const searchParams = useSearchParams()
   const roomIdParams = searchParams.get('id')
@@ -84,11 +87,12 @@ const MainPage = () => {
             }}
           >
             <div className="flex flex-col">
-              <div className="flex flex-row justify-between">
+              <div className="flex flex-row justify-between items-center">
                 <div className="flex flex-row items-center">
                   <div className="w-[26px] h-[26px] m-1 bg-gray-500"></div>
                   <div className="ms-2 text-[20px]">{user?.login}</div>
                 </div>
+                {isVoice ? <Voice /> : ''}
                 {sidebarOpen ? (
                   <button
                     className="w-[18px] h-[26px] m-1 bg-gray-500 cursor-pointer"

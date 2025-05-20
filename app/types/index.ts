@@ -40,3 +40,15 @@ export const getRoomsByType = <T extends Room['type']>(
 ): Room[] => {
   return rooms.filter((room) => room.type === type)
 }
+
+declare global {
+  interface Window {
+    RNNoiseNode: {
+      register(context: AudioContext): Promise<void>
+      new (context: AudioContext): AudioNode & {
+        update: (force: boolean) => void
+        onstatus: (data: { vadProb: number }) => void
+      }
+    }
+  }
+}
