@@ -1,3 +1,4 @@
+import { useIdsHelperStore } from '../store/useIdsHelperStore'
 import { useUserDataStore } from '../store/useUserDataStore'
 import { useUserVoiceStore } from '../store/useUserVoiceStore'
 import { getRoomsByType, Room, RoomType } from '../types'
@@ -28,8 +29,8 @@ const Category = ({
   onClick,
 }: CategoryProps) => {
   const { user } = useUserDataStore()
-  const { consumers, addConsumer, addGainNodes, changeGainNodes } =
-    useUserVoiceStore()
+  const { consumers, changeGainNodes } = useUserVoiceStore()
+  const { getLoginFromId } = useIdsHelperStore()
 
   const handleGainChange = (id: string, value: number) => {
     changeGainNodes(id, value)
@@ -69,7 +70,7 @@ const Category = ({
                           style={{}}
                           className="flex items-center cursor-pointer"
                         >
-                          {userId}
+                          {getLoginFromId(userId)}
                         </button>
                         {consumers?.map(({ user_id, id, gain }) =>
                           user_id === userId ? (

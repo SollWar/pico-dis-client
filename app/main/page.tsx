@@ -156,7 +156,7 @@ const MainPage = () => {
                 onClick={createRoom}
                 className="h-[34px] mb-0.5 ms-2.5 me-2.5 flex items-center border-1 cursor-pointer"
               >
-                Создать конал
+                Создать канал
               </button>
             </div>
           </OverlayScrollbarsComponent>

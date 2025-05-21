@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useMainSocketStore } from '../store/useMainSocketStore'
 import { useUserDataStore } from '../store/useUserDataStore'
 import { useUserVoiceStore } from '../store/useUserVoiceStore'
+import { useIdsHelperStore } from '../store/useIdsHelperStore'
 
 export const useGlobalLoader = () => {
   const [loaded, setLoaded] = useState(false)
@@ -9,12 +10,22 @@ export const useGlobalLoader = () => {
     useUserDataStore()
   const { socket } = useMainSocketStore()
   const { retainConsumersByUserIds } = useUserVoiceStore()
+  const { idToLogin, setLoginFromId, getLoginFromId } = useIdsHelperStore()
 
   useEffect(() => {
-    if (user && rooms) {
+    if (user && rooms && idToLogin) {
       setLoaded(true)
+      console.log(getLoginFromId('zispPbVCgYqn'))
     }
-  }, [user, rooms])
+  }, [user, rooms, idToLogin])
+
+  const getIdToLogin = async () => {
+    // const usersLogin = await new Promise<Record<string, string>>((resolve) =>
+    //   socket?.emit('getUsersLogin', (response) => {
+    //     resolve(response)
+    //   })
+    // )
+  }
 
   useEffect(() => {
     if (!socket) return
@@ -31,7 +42,13 @@ export const useGlobalLoader = () => {
       setUserRooms(rooms)
     })
 
-    socket.on('test', (usersInVoiceRooms) => {
+    socket.emit('getUsersLogin', (response) => {
+      setLoginFromId(response)
+    })
+
+    socket.emit('getUsersInVoiceRooms')
+
+    socket.on('setUsersInVoiceRooms', (usersInVoiceRooms) => {
       setUsersInVoiceRooms(usersInVoiceRooms)
       Object.entries(usersInVoiceRooms).map(([roomId, users]) => {
         retainConsumersByUserIds(users)

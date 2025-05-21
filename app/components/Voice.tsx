@@ -45,7 +45,8 @@ export default function Voice({ roomId }: VoiceProps) {
   const audioContextRef = useRef<AudioContext>(null)
   const rnnoiseNodeRef = useRef<InstanceType<typeof window.RNNoiseNode>>(null)
 
-  const { user } = useUserDataStore()
+  const { getRoomNameFromId } = useUserDataStore()
+  const [roomName, setRoomName] = useState('')
 
   const { addConsumer, addGainNodes, clearAll } = useUserVoiceStore()
 
@@ -144,6 +145,8 @@ export default function Voice({ roomId }: VoiceProps) {
   useEffect(() => {
     // Only run on client
     if (typeof window === 'undefined') return
+
+    setRoomName(getRoomNameFromId(roomId))
 
     connectSound.current = new Audio('/user_connect.wav')
     disconnectSound.current = new Audio('/user_disconnect.wav')
@@ -376,6 +379,7 @@ export default function Voice({ roomId }: VoiceProps) {
     try {
       // Остановка всех ресурсов
       console.log('End')
+      disconnectSound.current!.play().catch(() => {})
       clearAll()
       trackRef.current?.stop()
       streamRef.current?.getTracks().forEach((track) => track.stop())
@@ -405,7 +409,7 @@ export default function Voice({ roomId }: VoiceProps) {
             background: 'green',
           }}
         >
-          {roomId}
+          {roomName}
         </div>
       </div>
       <div className="flex justify-end">

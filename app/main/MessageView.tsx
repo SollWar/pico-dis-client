@@ -1,3 +1,4 @@
+import { useIdsHelperStore } from '../store/useIdsHelperStore'
 import { Message } from '../types'
 
 interface MessageProps {
@@ -22,6 +23,7 @@ const formatPostgresDate = (dateString: string): string => {
 }
 
 const MessageView = ({ message, currentUserId }: MessageProps) => {
+  const { getLoginFromId } = useIdsHelperStore()
   const textColor = currentUserId === message.user_id ? 'white' : 'black'
   const backColor = currentUserId === message.user_id ? '#2B7FFF' : '#EFF3F6'
   return (
@@ -32,7 +34,7 @@ const MessageView = ({ message, currentUserId }: MessageProps) => {
       >
         <div className="flex flex-row items-baseline pe-2">
           <div className={`text-[16px] font-semibold text-${textColor}`}>
-            {message.user_id}
+            {getLoginFromId(message.user_id)}
           </div>
           <div className={`ms-1.5 text-[10px] text-${textColor}`}>
             {formatPostgresDate(message.created_at.toString())}

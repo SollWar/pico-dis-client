@@ -8,9 +8,10 @@ interface UserDataState {
   setUser: (user: PublicUser) => void
   setUserRooms: (rooms: Room[]) => void
   setUsersInVoiceRooms: (usersInVoiceRooms: Record<string, string[]>) => void
+  getRoomNameFromId: (id: string) => string
 }
 
-export const useUserDataStore = create<UserDataState>((set) => ({
+export const useUserDataStore = create<UserDataState>((set, get) => ({
   user: null,
   rooms: null,
   usersInVoiceRooms: null,
@@ -31,5 +32,15 @@ export const useUserDataStore = create<UserDataState>((set) => ({
       ...state,
       rooms,
     }))
+  },
+  getRoomNameFromId(id) {
+    let roomName = ''
+    get().rooms?.forEach((room, index) => {
+      console.log(room.name)
+      if (room.id === id) {
+        roomName = room.name
+      }
+    })
+    return roomName
   },
 }))
