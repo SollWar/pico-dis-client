@@ -17,7 +17,7 @@ export const useMainSocketStore = create<SocketStore>((set) => ({
   socket: null,
 
   connect: () => {
-    const socketInstance = io(`${'http://localhost:3001'}/api/main`, {
+    const socketInstance = io(`${'https://192.168.1.102:3001'}/api/main`, {
       withCredentials: true,
       transports: ['websocket', 'polling'],
     })

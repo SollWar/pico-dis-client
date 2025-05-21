@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "https": "next dev --experimental-https"
   },
   "dependencies": {
     "axios": "^1.9.0",

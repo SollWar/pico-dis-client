@@ -15,7 +15,7 @@ const ICE_SERVERS = [
 ]
 
 // Signaling endpoint
-const SIGNALING_URL = 'http://localhost:3001/api/voice'
+const SIGNALING_URL = 'https://192.168.1.102:3001/api/voice'
 
 interface VoiceProps {
   roomId: string
@@ -264,9 +264,13 @@ export default function Voice({ roomId }: VoiceProps) {
         gainNode.gain.value = 1
         source.connect(gainNode).connect(ctx.destination)
 
+        //const audio = new Audio()
+        //audio.srcObject = new MediaStream([consumer.track])
+        //await audio.play()
+
         const audio = new Audio()
         audio.srcObject = mediaStream
-        await audio.play()
+        //await audio.play()
 
         // сохраняем GainNode для изменения громкости
         addConsumer({ user_id: consumeParams.user_id, id: consumerId, gain: 1 })
@@ -339,7 +343,6 @@ export default function Voice({ roomId }: VoiceProps) {
 
       rnnoiseNodeRef.current = new window.RNNoiseNode(audioContextRef.current!)
       source.connect(rnnoiseNodeRef.current)
-
       // 1. Создаем выходной поток для WebRTC
       const destination =
         audioContextRef.current!.createMediaStreamDestination()
@@ -350,7 +353,7 @@ export default function Voice({ roomId }: VoiceProps) {
 
       // 3. VAD-обработчик (управляем sendTrack, а не исходным треком микрофона!)
       const handleVadUpdate = (vadLevel: number) => {
-        const shouldMute = vadLevel < 0.5
+        const shouldMute = vadLevel < 1
         sendTrack.enabled = !shouldMute // <-- Ключевое изменение!
       }
 
