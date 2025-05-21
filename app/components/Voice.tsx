@@ -5,6 +5,8 @@ import Image from 'next/image'
 import { useEffect, useRef, useState } from 'react'
 import { io, Socket } from 'socket.io-client'
 import { debounce, throttle } from 'lodash'
+import { useUserVoiceStore } from '../store/useUserVoiceStore'
+import { useUserDataStore } from '../store/useUserDataStore'
 
 // STUN servers
 const ICE_SERVERS = [
@@ -17,6 +19,11 @@ const SIGNALING_URL = 'http://localhost:3001/api/voice'
 
 interface VoiceProps {
   roomId: string
+}
+
+interface ConsumerInfo {
+  id: string
+  gain: number
 }
 
 export default function Voice({ roomId }: VoiceProps) {
@@ -37,6 +44,10 @@ export default function Voice({ roomId }: VoiceProps) {
 
   const audioContextRef = useRef<AudioContext>(null)
   const rnnoiseNodeRef = useRef<InstanceType<typeof window.RNNoiseNode>>(null)
+
+  const { user } = useUserDataStore()
+
+  const { addConsumer, addGainNodes, clearAll } = useUserVoiceStore()
 
   const [vadLevel, setVadLevel] = useState<number>(0)
 
@@ -242,9 +253,23 @@ export default function Voice({ roomId }: VoiceProps) {
           rtpParameters,
         })
 
+        const ctx = audioContextRef.current!
+        const mediaStream = new MediaStream([consumer.track]) // создаём один раз
+
+        const source = ctx.createMediaStreamSource(mediaStream)
+        const gainNode = ctx.createGain()
+        gainNode.gain.value = 1
+        source.connect(gainNode).connect(ctx.destination)
+
         const audio = new Audio()
-        audio.srcObject = new MediaStream([consumer.track])
+        audio.srcObject = mediaStream
         await audio.play()
+
+        // сохраняем GainNode для изменения громкости
+        addConsumer({ user_id: consumeParams.user_id, id: consumerId, gain: 1 })
+        addGainNodes(consumerId, gainNode)
+        // gainNodesRef.current[consumerId] = gainNode
+        // setConsumers((prev) => [...prev, { id: consumerId, gain: 1 }])
       } catch (err) {
         console.error('createConsumer error:', err)
       }
@@ -336,11 +361,6 @@ export default function Voice({ roomId }: VoiceProps) {
         20 // Задержка в мс
       )
 
-      // 5. Анимационный цикл RNNoise
-      // const vadUpdateInterval = setInterval(() => {
-      //   rnnoiseNodeRef.current?.update(true)
-      // }, 20)
-
       // 6. Отправляем трек в серверный транспорт (sendTrack вместо оригинального трека)
       const producer = await sendTransport.produce({
         track: sendTrack, // <-- Используем обработанный трек
@@ -355,6 +375,8 @@ export default function Voice({ roomId }: VoiceProps) {
   const endCall = async () => {
     try {
       // Остановка всех ресурсов
+      console.log('End')
+      clearAll()
       trackRef.current?.stop()
       streamRef.current?.getTracks().forEach((track) => track.stop())
       sendTransportRef.current?.close()

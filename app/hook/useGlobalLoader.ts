@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react'
 import { useMainSocketStore } from '../store/useMainSocketStore'
 import { useUserDataStore } from '../store/useUserDataStore'
+import { useUserVoiceStore } from '../store/useUserVoiceStore'
 
 export const useGlobalLoader = () => {
   const [loaded, setLoaded] = useState(false)
   const { user, rooms, setUser, setUserRooms, setUsersInVoiceRooms } =
     useUserDataStore()
   const { socket } = useMainSocketStore()
+  const { retainConsumersByUserIds } = useUserVoiceStore()
 
   useEffect(() => {
     if (user && rooms) {
@@ -31,6 +33,9 @@ export const useGlobalLoader = () => {
 
     socket.on('test', (usersInVoiceRooms) => {
       setUsersInVoiceRooms(usersInVoiceRooms)
+      Object.entries(usersInVoiceRooms).map(([roomId, users]) => {
+        retainConsumersByUserIds(users)
+      })
     })
 
     socket.on('getUser', (user) => {

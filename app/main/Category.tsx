@@ -1,4 +1,5 @@
 import { useUserDataStore } from '../store/useUserDataStore'
+import { useUserVoiceStore } from '../store/useUserVoiceStore'
 import { getRoomsByType, Room, RoomType } from '../types'
 
 const roomTypeLabels: Record<RoomType, string> = {
@@ -27,6 +28,12 @@ const Category = ({
   onClick,
 }: CategoryProps) => {
   const { user } = useUserDataStore()
+  const { consumers, addConsumer, addGainNodes, changeGainNodes } =
+    useUserVoiceStore()
+
+  const handleGainChange = (id: string, value: number) => {
+    changeGainNodes(id, value)
+  }
   return (
     <div>
       <div className="h-[34px] mt-0.5 mb-0.5 ms-2.5 me-2.5 flex items-center border-1 cursor-pointer">
@@ -49,22 +56,50 @@ const Category = ({
             ? Object.entries(usersInVoiceRooms).map(([roomId, users]) =>
                 roomId === room.id
                   ? users.map((userId) => (
-                      <button
-                        key={roomId + userId}
+                      <div
+                        className="mt-0.5 ms-8 me-2.5 border-1 w-[207px]"
                         style={{
+                          height: userId === user?.id ? '30px' : '54px',
                           background: userId === user?.id ? '#2B7FFF' : '',
                           color: userId === user?.id ? 'white' : '',
                         }}
-                        className="border-1 h-[30px] w-[207px] mt-0.5 mb-0.5 ms-8 me-2.5 flex items-center cursor-pointer"
+                        key={roomId + userId}
                       >
-                        {userId}
-                      </button>
+                        <button
+                          style={{}}
+                          className="flex items-center cursor-pointer"
+                        >
+                          {userId}
+                        </button>
+                        {consumers?.map(({ user_id, id, gain }) =>
+                          user_id === userId ? (
+                            <div key={id} className="flex items-center">
+                              <label htmlFor={`gain-${id}`}></label>
+                              <input
+                                id={`gain-${id}`}
+                                type="range"
+                                min={0}
+                                max={5}
+                                step={0.1}
+                                value={gain}
+                                onChange={(e) =>
+                                  handleGainChange(id, +e.target.value)
+                                }
+                              />
+                              <span>{(gain * 100).toFixed(0)}%</span>
+                            </div>
+                          ) : (
+                            ''
+                          )
+                        )}
+                      </div>
                     ))
                   : ''
               )
             : ''}
         </div>
       ))}
+      <div className="space-y-4"></div>
     </div>
   )
 }
