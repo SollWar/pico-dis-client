@@ -1,12 +1,11 @@
 'use client'
 import * as mediasoupClient from 'mediasoup-client'
-import Script from 'next/script'
 import Image from 'next/image'
 import { useEffect, useRef, useState } from 'react'
 import { io, Socket } from 'socket.io-client'
-import { debounce, throttle } from 'lodash'
 import { useUserVoiceStore } from '../store/useUserVoiceStore'
 import { useUserDataStore } from '../store/useUserDataStore'
+import { MicVAD } from '@ricky0123/vad-web'
 
 // STUN servers
 const ICE_SERVERS = [
@@ -37,6 +36,7 @@ export default function Voice({ roomId }: VoiceProps) {
   const connectSound = useRef<HTMLAudioElement | null>(null)
   const disconnectSound = useRef<HTMLAudioElement | null>(null)
 
+  const micVADRef = useRef<MicVAD | null>(null)
   const [isMicMuted, setIsMicMuted] = useState(false)
   const [isVolMuted, setIsVolMuted] = useState(false)
   const streamRef = useRef<MediaStream>(null)
@@ -63,11 +63,12 @@ export default function Voice({ roomId }: VoiceProps) {
     try {
       if (isMicMuted) {
         // Включаем микрофон
-        trackRef.current.enabled = true
+        micVADRef.current?.start()
         setIsMicMuted(false)
       } else {
         // Отключаем микрофон
-        trackRef.current.enabled = false
+        micVADRef.current?.pause()
+        setVadLevel(0)
         setIsMicMuted(true)
       }
     } catch (error) {
@@ -318,7 +319,7 @@ export default function Voice({ roomId }: VoiceProps) {
         audio: {
           channelCount: { ideal: 1 },
           noiseSuppression: { ideal: false },
-          echoCancellation: { ideal: true },
+          echoCancellation: { ideal: false },
           autoGainControl: { ideal: false },
           // sampleRate: { ideal: 48000 },
         },
@@ -351,21 +352,28 @@ export default function Voice({ roomId }: VoiceProps) {
       // 2. Берем трек из destination (этот трек будет отправляться через transport)
       const sendTrack = destination.stream.getAudioTracks()[0]
 
-      // 3. VAD-обработчик (управляем sendTrack, а не исходным треком микрофона!)
-      const handleVadUpdate = (vadLevel: number) => {
-        const shouldMute = vadLevel < 1
-        sendTrack.enabled = !shouldMute // <-- Ключевое изменение!
-      }
-
-      // 4. Подключаем throttled VAD-обработчик
-      rnnoiseNodeRef.current.onstatus = throttle(
-        (data: { vadProb: number }) => {
-          const vadLevel = data.vadProb * 100
-          setVadLevel(vadLevel)
-          handleVadUpdate(vadLevel)
+      const vad = await MicVAD.new({
+        ortConfig() {
+          this.frameSamples = 512
+          this.minSpeechFrames = 3
         },
-        20 // Задержка в мс
-      )
+        // onSpeechStart: () => {
+        //   console.log('Начало речи')
+        // },
+        // onSpeechEnd: (audio) => {
+        //   console.log('Конец речи')
+        // },
+        onFrameProcessed: (probabilities) => {
+          const vadProb = probabilities.isSpeech
+          const vadLevel = vadProb * 100
+          setVadLevel(vadLevel)
+          sendTrack.enabled = vadLevel >= 10
+        },
+      })
+
+      micVADRef.current = vad
+
+      vad.start()
 
       // 6. Отправляем трек в серверный транспорт (sendTrack вместо оригинального трека)
       const producer = await sendTransport.produce({
