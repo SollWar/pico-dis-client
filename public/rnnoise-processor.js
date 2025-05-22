@@ -1,47 +1,58 @@
 'use strict'
 {
-  let b, d
+  let bExports, memoryView
+
   registerProcessor(
     'rnnoise',
     class extends AudioWorkletProcessor {
-      constructor(a) {
+      constructor(options) {
         super({
-          ...a,
+          ...options,
           numberOfInputs: 1,
           numberOfOutputs: 1,
           outputChannelCount: [1],
         })
-        b ||
-          (d = new Float32Array(
-            (b = new WebAssembly.Instance(a.processorOptions.module)
-              .exports).memory.buffer
-          ))
-        this.state = b.newState()
-        this.alive = !0
-        // this.port.onmessage = ({ data: a }) => {
-        //   this.alive &&
-        //     (a
-        //       ? this.port.postMessage({ vadProb: b.getVadProb(this.state) })
-        //       : ((this.alive = !1), b.deleteState(this.state)))
-        // }
-        this.sampleCounter = 0
-        this.samplesPerUpdate = Math.floor(sampleRate / 50) // ~20ms
+        bExports = new WebAssembly.Instance(options.processorOptions.module)
+          .exports
+        memoryView = new Float32Array(bExports.memory.buffer)
+        this.state = bExports.newState()
+        // Устанавливаем исходный gain из options или 1.0
+        this.gain = options.processorOptions.gain ?? 1.0
+
+        // Слушаем сообщения для обновления gain
+        this.port.onmessage = ({ data }) => {
+          if (typeof data.gain === 'number') {
+            this.gain = data.gain
+          }
+        }
       }
+
       process(inputs, outputs) {
-        if (!this.alive) return false
+        if (!inputs[0] || !inputs[0][0]) return true
         const inp = inputs[0][0]
         const outp = outputs[0][0]
-        // Заполняем буферы
-        d.set(inp, b.getInput(this.state) / 4)
-        const got = b.pipe(this.state, outp.length) / 4
-        if (got) outp.set(d.subarray(got, got + outp.length))
-        // Отсчитываем сэмплы и раз в ~20 ms шлём VAD
-        this.sampleCounter += outp.length
-        if (this.sampleCounter >= this.samplesPerUpdate) {
-          this.sampleCounter -= this.samplesPerUpdate
-          this.port.postMessage({ vadProb: b.getVadProb(this.state) })
+
+        // Копируем входные данные
+        memoryView.set(inp, bExports.getInput(this.state) / 4)
+
+        // Обработка RNNoise
+        const got = bExports.pipe(this.state, outp.length) / 4
+        if (got) {
+          // Извлечение фрейма
+          const frame = memoryView.subarray(got, got + outp.length)
+          // Применяем gain
+          for (let i = 0; i < frame.length; i++) {
+            outp[i] = frame[i] * this.gain
+          }
         }
+
         return true
+      }
+
+      // Освобождение состояния при завершении
+      // (необязательно, но полезно)
+      shutdown() {
+        bExports.deleteState(this.state)
       }
     }
   )

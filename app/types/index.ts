@@ -44,11 +44,29 @@ export const getRoomsByType = <T extends Room['type']>(
 declare global {
   interface Window {
     RNNoiseNode: {
+      /**
+       * Регистрирует AudioWorkletProcessor.
+       * @param context — AudioContext, в который добавляем процессор.
+       */
       register(context: AudioContext): Promise<void>
-      new (context: AudioContext): AudioNode & {
-        update: (force: boolean) => void
-        onstatus: (data: { vadProb: number }) => void
+
+      /**
+       * Создаёт экземпляр узла шумоподавления.
+       * @param context — AudioContext, к которому привязываем узел.
+       * @param options.gain — начальный коэффициент усиления (по умолчанию 1.0).
+       */
+      new (
+        context: AudioContext,
+        options?: { gain?: number }
+      ): AudioWorkletNode & {
+        /**
+         * Изменяет коэффициент усиления в реальном времени.
+         * @param gain — новое значение gain.
+         */
+        updateGain(gain: number): void
       }
     }
   }
 }
+
+export {}

@@ -11,7 +11,7 @@ export const useAuth = () => {
   ): Promise<AuthResult> => {
     return await axiosPost<AuthResult, { login: string; password: string }>(
       { login, password },
-      'https://192.168.1.102:3001/api/login'
+      'http://localhost:3001/api/login'
     )
   }
 
@@ -21,7 +21,7 @@ export const useAuth = () => {
   ): Promise<AuthResult> => {
     return await axiosPost<AuthResult, { login: string; password: string }>(
       { login, password },
-      'https://192.168.1.102:3001/api/reg'
+      'http://localhost:3001/api/reg'
     )
   }
 

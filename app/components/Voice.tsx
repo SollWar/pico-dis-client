@@ -14,7 +14,7 @@ const ICE_SERVERS = [
 ]
 
 // Signaling endpoint
-const SIGNALING_URL = 'https://192.168.1.102:3001/api/voice'
+const SIGNALING_URL = 'http://localhost:3001/api/voice'
 
 interface VoiceProps {
   roomId: string
@@ -342,7 +342,10 @@ export default function Voice({ roomId }: VoiceProps) {
         }
       })
 
-      rnnoiseNodeRef.current = new window.RNNoiseNode(audioContextRef.current!)
+      rnnoiseNodeRef.current = new window.RNNoiseNode(
+        audioContextRef.current!,
+        { gain: 1.2 }
+      )
       source.connect(rnnoiseNodeRef.current)
       // 1. Создаем выходной поток для WebRTC
       const destination =
@@ -352,22 +355,32 @@ export default function Voice({ roomId }: VoiceProps) {
       // 2. Берем трек из destination (этот трек будет отправляться через transport)
       const sendTrack = destination.stream.getAudioTracks()[0]
 
+      let speechFrames = 0
+      let silenceFrames = 0
+      const MIN_SPEECH_FRAMES = 0
+      const MIN_SILENCE_FRAMES = 0
+
       const vad = await MicVAD.new({
-        ortConfig() {
-          this.frameSamples = 512
-          this.minSpeechFrames = 3
-        },
-        // onSpeechStart: () => {
-        //   console.log('Начало речи')
-        // },
-        // onSpeechEnd: (audio) => {
-        //   console.log('Конец речи')
-        // },
+        frameSamples: 512,
+        minSpeechFrames: 0,
         onFrameProcessed: (probabilities) => {
           const vadProb = probabilities.isSpeech
           const vadLevel = vadProb * 100
           setVadLevel(vadLevel)
-          sendTrack.enabled = vadLevel >= 10
+
+          if (vadLevel >= 20) {
+            speechFrames++
+            silenceFrames = 0
+          } else {
+            silenceFrames++
+            speechFrames = 0
+          }
+
+          if (speechFrames >= MIN_SPEECH_FRAMES) {
+            sendTrack.enabled = true
+          } else if (silenceFrames >= MIN_SILENCE_FRAMES) {
+            sendTrack.enabled = false
+          }
         },
       })
 
