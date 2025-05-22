@@ -1,3 +1,4 @@
+import PopoverMenu from '../components/PopoverMenu'
 import { useIdsHelperStore } from '../store/useIdsHelperStore'
 import { useUserDataStore } from '../store/useUserDataStore'
 import { useUserVoiceStore } from '../store/useUserVoiceStore'
@@ -57,21 +58,29 @@ const Category = ({
             ? Object.entries(usersInVoiceRooms).map(([roomId, users]) =>
                 roomId === room.id
                   ? users.map((userId) => (
-                      <div
-                        className="mt-0.5 ms-8 me-2.5 border-1 w-[207px]"
-                        style={{
-                          height: userId === user?.id ? '30px' : '54px',
-                          background: userId === user?.id ? '#2B7FFF' : '',
-                          color: userId === user?.id ? 'white' : '',
-                        }}
+                      <PopoverMenu
                         key={roomId + userId}
+                        isOpen={userId !== user?.id}
+                        trigger={
+                          <div
+                            className="mb-0.5 ms-8 me-2.5 border-1 w-[207px]"
+                            style={{
+                              height: '30px',
+                              background: userId === user?.id ? '#2B7FFF' : '',
+                              color: userId === user?.id ? 'white' : '',
+                              border: 'solid 1px black',
+                            }}
+                          >
+                            <button
+                              style={{}}
+                              className="flex items-center cursor-pointer"
+                            >
+                              {getLoginFromId(userId)}
+                            </button>
+                          </div>
+                        }
+                        position="left"
                       >
-                        <button
-                          style={{}}
-                          className="flex items-center cursor-pointer"
-                        >
-                          {getLoginFromId(userId)}
-                        </button>
                         {consumers?.map(({ user_id, id, gain }) =>
                           user_id === userId ? (
                             <div key={id} className="flex items-center">
@@ -93,7 +102,7 @@ const Category = ({
                             ''
                           )
                         )}
-                      </div>
+                      </PopoverMenu>
                     ))
                   : ''
               )

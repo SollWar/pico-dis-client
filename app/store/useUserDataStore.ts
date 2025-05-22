@@ -35,7 +35,7 @@ export const useUserDataStore = create<UserDataState>((set, get) => ({
   },
   getRoomNameFromId(id) {
     let roomName = ''
-    get().rooms?.forEach((room, index) => {
+    get().rooms?.forEach((room) => {
       console.log(room.name)
       if (room.id === id) {
         roomName = room.name

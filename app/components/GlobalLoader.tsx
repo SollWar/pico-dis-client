@@ -4,12 +4,20 @@ import { useGlobalLoader } from '@/app/hook/useGlobalLoader'
 import { useMainSocketStore } from '../store/useMainSocketStore'
 import LoadingScreen from './Loading'
 
-export default function GlobalLoader({ children }: { children: ReactNode }) {
+interface GlobalLoaderProps {
+  children: ReactNode
+  serverUrl: string
+}
+
+export default function GlobalLoader({
+  children,
+  serverUrl,
+}: GlobalLoaderProps) {
   const { loaded } = useGlobalLoader()
   const { connect, disconnect } = useMainSocketStore()
 
   useEffect(() => {
-    connect()
+    connect(serverUrl)
 
     return () => {
       disconnect()

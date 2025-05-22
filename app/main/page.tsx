@@ -3,15 +3,13 @@ import { useEffect, useState } from 'react'
 import Category from './Category'
 import { OverlayScrollbarsComponent } from 'overlayscrollbars-react'
 import 'overlayscrollbars/styles/overlayscrollbars.css'
-import { findRoomById, Room, RoomType } from '../types'
+import { findRoomById, Room } from '../types'
 import { useTextRoom } from '../hook/useTextRoom'
 import { useUserDataStore } from '../store/useUserDataStore'
 import { useRouter, useSearchParams } from 'next/navigation'
 import TextRoom from './TextRoom'
-import Modal from '../components/Modal'
 import CreateRoomModal from './CreateRoomModal'
 import Voice from '../components/Voice'
-import Script from 'next/script'
 
 const MainPage = () => {
   const router = useRouter()

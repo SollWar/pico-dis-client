@@ -20,11 +20,6 @@ interface VoiceProps {
   roomId: string
 }
 
-interface ConsumerInfo {
-  id: string
-  gain: number
-}
-
 export default function Voice({ roomId }: VoiceProps) {
   // Refs for transports, producer, device, socket
   const socketRef = useRef<Socket>(null)
@@ -32,15 +27,17 @@ export default function Voice({ roomId }: VoiceProps) {
   const sendTransportRef = useRef<ReturnType<
     mediasoupClient.Device['createSendTransport']
   > | null>(null)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const producerRef = useRef<any>(null)
   const connectSound = useRef<HTMLAudioElement | null>(null)
   const disconnectSound = useRef<HTMLAudioElement | null>(null)
 
   const micVADRef = useRef<MicVAD | null>(null)
-  const [isMicMuted, setIsMicMuted] = useState(false)
-  const [isVolMuted, setIsVolMuted] = useState(false)
+  const [isMicMuted, setIsMicMuted] = useState<boolean>(false)
+  const [isVolMuted, setIsVolMuted] = useState<boolean>(false)
   const streamRef = useRef<MediaStream>(null)
   const trackRef = useRef<MediaStreamTrack>(null)
+  const sendTrackRef = useRef<MediaStreamTrack>(null)
 
   const audioContextRef = useRef<AudioContext>(null)
   const rnnoiseNodeRef = useRef<InstanceType<typeof window.RNNoiseNode>>(null)
@@ -64,10 +61,12 @@ export default function Voice({ roomId }: VoiceProps) {
       if (isMicMuted) {
         // Включаем микрофон
         micVADRef.current?.start()
+        sendTrackRef.current!.enabled = true
         setIsMicMuted(false)
       } else {
         // Отключаем микрофон
         micVADRef.current?.pause()
+        sendTrackRef.current!.enabled = false
         setVadLevel(0)
         setIsMicMuted(true)
       }
@@ -91,8 +90,11 @@ export default function Voice({ roomId }: VoiceProps) {
   async function createTransport(
     params: {
       id: string
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       iceParameters: any
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       iceCandidates: any[]
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       dtlsParameters: any
     },
     direction: 'send' | 'recv'
@@ -115,28 +117,23 @@ export default function Voice({ roomId }: VoiceProps) {
       socketRef.current!.emit(
         event,
         { transportId: transport.id, dtlsParameters },
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (err: any) => (err ? errback(err) : callback())
       )
     })
 
     if (direction === 'send') {
-      transport.on(
-        'produce',
-        async ({ kind, rtpParameters }, callback, errback) => {
-          try {
-            const { id } = await new Promise<{ id: string }>((resolve) =>
-              socketRef.current!.emit(
-                'produce',
-                { kind, rtpParameters },
-                resolve
-              )
-            )
-            callback({ id })
-          } catch (err) {
-            console.log(err)
-          }
+      transport.on('produce', async ({ kind, rtpParameters }, callback) => {
+        try {
+          const { id } = await new Promise<{ id: string }>((resolve) =>
+            socketRef.current!.emit('produce', { kind, rtpParameters }, resolve)
+          )
+          callback({ id })
+        } catch (err) {
+          console.log(err)
         }
-      )
+      })
     }
 
     return transport
@@ -158,10 +155,12 @@ export default function Voice({ roomId }: VoiceProps) {
 
     // 1. Connect to socket.io
 
-    const socket = io(SIGNALING_URL, {
+    console.log(roomId)
+
+    const socket: Socket = io(SIGNALING_URL, {
       withCredentials: true,
       transports: ['websocket', 'polling'],
-      query: { roomId: roomId },
+      auth: { roomId },
     })
     socketRef.current = socket
 
@@ -172,6 +171,7 @@ export default function Voice({ roomId }: VoiceProps) {
           await initializeAudioProcessing()
 
           // 2. Get RTP capabilities from server
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const rtpCapabilities = await new Promise<any>((resolve) =>
             socket.emit('getRtpCapabilities', resolve)
           )
@@ -219,6 +219,7 @@ export default function Voice({ roomId }: VoiceProps) {
         if (producerRef.current && producerRef.current.id === producerId) return
 
         const device = deviceRef.current!
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const consumeParams = await new Promise<any>((resolve) =>
           socket.emit(
             'consume',
@@ -306,6 +307,7 @@ export default function Voice({ roomId }: VoiceProps) {
     const socket = socketRef.current!
     try {
       // 1. Create transport on server
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const sendParams = await new Promise<any>((resolve) =>
         socket.emit('createTransport', {}, resolve)
       )
@@ -342,10 +344,7 @@ export default function Voice({ roomId }: VoiceProps) {
         }
       })
 
-      rnnoiseNodeRef.current = new window.RNNoiseNode(
-        audioContextRef.current!,
-        { gain: 1.2 }
-      )
+      rnnoiseNodeRef.current = new window.RNNoiseNode(audioContextRef.current!)
       source.connect(rnnoiseNodeRef.current)
       // 1. Создаем выходной поток для WebRTC
       const destination =
@@ -354,6 +353,7 @@ export default function Voice({ roomId }: VoiceProps) {
 
       // 2. Берем трек из destination (этот трек будет отправляться через transport)
       const sendTrack = destination.stream.getAudioTracks()[0]
+      sendTrackRef.current = sendTrack
 
       let speechFrames = 0
       let silenceFrames = 0
@@ -403,6 +403,7 @@ export default function Voice({ roomId }: VoiceProps) {
     try {
       // Остановка всех ресурсов
       console.log('End')
+      micVADRef.current?.destroy()
       disconnectSound.current!.play().catch(() => {})
       clearAll()
       trackRef.current?.stop()

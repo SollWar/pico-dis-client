@@ -10,22 +10,13 @@ export const useGlobalLoader = () => {
     useUserDataStore()
   const { socket } = useMainSocketStore()
   const { retainConsumersByUserIds } = useUserVoiceStore()
-  const { idToLogin, setLoginFromId, getLoginFromId } = useIdsHelperStore()
+  const { idToLogin, setLoginFromId } = useIdsHelperStore()
 
   useEffect(() => {
     if (user && rooms && idToLogin) {
       setLoaded(true)
-      console.log(getLoginFromId('zispPbVCgYqn'))
     }
   }, [user, rooms, idToLogin])
-
-  const getIdToLogin = async () => {
-    // const usersLogin = await new Promise<Record<string, string>>((resolve) =>
-    //   socket?.emit('getUsersLogin', (response) => {
-    //     resolve(response)
-    //   })
-    // )
-  }
 
   useEffect(() => {
     if (!socket) return
@@ -50,7 +41,7 @@ export const useGlobalLoader = () => {
 
     socket.on('setUsersInVoiceRooms', (usersInVoiceRooms) => {
       setUsersInVoiceRooms(usersInVoiceRooms)
-      Object.entries(usersInVoiceRooms).map(([roomId, users]) => {
+      Object.values(usersInVoiceRooms).forEach((users) => {
         retainConsumersByUserIds(users)
       })
     })

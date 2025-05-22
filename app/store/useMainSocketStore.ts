@@ -7,7 +7,7 @@ import { create } from 'zustand'
 
 type SocketStore = {
   socket: TypedSocket | null
-  connect: () => void
+  connect: (url: string) => void
   disconnect: () => void
 }
 
@@ -15,9 +15,9 @@ type TypedSocket = Socket<MainServerToClientEvents, MainClientToServerEvents>
 
 export const useMainSocketStore = create<SocketStore>((set) => ({
   socket: null,
-
-  connect: () => {
-    const socketInstance = io(`${'http://localhost:3001'}/api/main`, {
+  url: null,
+  connect: (url) => {
+    const socketInstance = io(`${url}/api/main`, {
       withCredentials: true,
       transports: ['websocket', 'polling'],
     })

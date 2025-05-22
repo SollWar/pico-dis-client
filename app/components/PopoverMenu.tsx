@@ -6,18 +6,24 @@ interface PopoverMenuProps {
   trigger: ReactNode
   children: ReactNode
   position?: 'left' | 'right'
+  isOpen: boolean
 }
 
 export default function PopoverMenu({
   trigger,
   children,
   position = 'left',
+  isOpen = true,
 }: PopoverMenuProps) {
   const [open, setOpen] = useState(false)
   const triggerRef = useRef<HTMLDivElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
 
-  const toggleMenu = () => setOpen((prev) => !prev)
+  const toggleMenu = () => {
+    if (isOpen) {
+      setOpen((prev) => !prev)
+    }
+  }
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -44,8 +50,8 @@ export default function PopoverMenu({
       {open && (
         <div
           ref={menuRef}
-          className={`absolute mt-2 w-48 bg-white border shadow-lg rounded z-50 ${
-            position === 'right' ? 'right-0' : 'left-0'
+          className={`absolute w-48 bg-white border shadow-lg rounded z-50 ${
+            position === 'right' ? 'right-0' : 'left-[32px]'
           }`}
         >
           {children}

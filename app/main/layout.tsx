@@ -1,6 +1,5 @@
 import Script from 'next/script'
 import GlobalLoader from '../components/GlobalLoader'
-import SWorker from './sworker'
 
 export const metadata = {
   title: 'PicoDis - Главная',
@@ -12,11 +11,14 @@ export default function MainLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  const serverUrl = process.env.SERVER_URL
+  console.log(serverUrl)
+
   return (
     <>
-      <SWorker />
+      {/* <SWorker /> */}
       <Script src="/rnnoise-runtime.js" strategy="lazyOnload" />
-      <GlobalLoader>{children}</GlobalLoader>
+      <GlobalLoader serverUrl={serverUrl as string}>{children}</GlobalLoader>
     </>
   )
 }
