@@ -9,8 +9,15 @@ import { MicVAD } from '@ricky0123/vad-web'
 
 // STUN servers
 const ICE_SERVERS = [
-  { urls: 'stun:stun.l.google.com:19302' },
-  { urls: 'stun:stun1.l.google.com:19302' },
+  {
+    urls: [
+      'stun:81.200.28.95:3478',
+      'stun:turn.home.ed4m.ru:3478',
+      'turn:turn.home.ed4m.ru:3478?transport=udp',
+    ],
+    username: 'picodis',
+    credential: '909242aA!!',
+  },
 ]
 
 // Signaling endpoint
