@@ -13,6 +13,9 @@ export const useGlobalLoader = () => {
   const { idToLogin, setLoginFromId } = useIdsHelperStore()
 
   useEffect(() => {
+    console.log(user)
+    console.log(rooms)
+    console.log(idToLogin)
     if (user && rooms && idToLogin) {
       setLoaded(true)
     }
