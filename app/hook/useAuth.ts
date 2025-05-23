@@ -11,7 +11,7 @@ export const useAuth = () => {
   ): Promise<AuthResult> => {
     return await axiosPost<AuthResult, { login: string; password: string }>(
       { login, password },
-      'http://localhost:3001/api/login'
+      process.env.NEXT_PUBLIC_API_URL + '/api/login'
     )
   }
 
@@ -21,7 +21,7 @@ export const useAuth = () => {
   ): Promise<AuthResult> => {
     return await axiosPost<AuthResult, { login: string; password: string }>(
       { login, password },
-      'http://localhost:3001/api/reg'
+      process.env.NEXT_PUBLIC_API_URL + '/api/reg'
     )
   }
 

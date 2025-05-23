@@ -6,22 +6,13 @@ import { io, Socket } from 'socket.io-client'
 import { useUserVoiceStore } from '../store/useUserVoiceStore'
 import { useUserDataStore } from '../store/useUserDataStore'
 import { MicVAD } from '@ricky0123/vad-web'
+import { Producer } from 'mediasoup-client/types'
 
 // STUN servers
-const ICE_SERVERS = [
-  {
-    urls: [
-      'stun:81.200.28.95:3478',
-      'stun:turn.home.ed4m.ru:3478',
-      'turn:turn.home.ed4m.ru:3478?transport=udp',
-    ],
-    username: 'picodis',
-    credential: '909242aA!!',
-  },
-]
+const ICE_SERVERS = [{ urls: 'stun:stun.l.google.com:19302' }]
 
 // Signaling endpoint
-const SIGNALING_URL = 'http://localhost:3001/api/voice'
+const SIGNALING_URL = process.env.NEXT_PUBLIC_API_URL + '/api/voice'
 
 interface VoiceProps {
   roomId: string
@@ -35,7 +26,7 @@ export default function Voice({ roomId }: VoiceProps) {
     mediasoupClient.Device['createSendTransport']
   > | null>(null)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const producerRef = useRef<any>(null)
+  const producerRef = useRef<Producer>(null)
   const connectSound = useRef<HTMLAudioElement | null>(null)
   const disconnectSound = useRef<HTMLAudioElement | null>(null)
 
@@ -364,18 +355,18 @@ export default function Voice({ roomId }: VoiceProps) {
 
       let speechFrames = 0
       let silenceFrames = 0
-      const MIN_SPEECH_FRAMES = 0
-      const MIN_SILENCE_FRAMES = 0
+      const MIN_SPEECH_FRAMES = 3
+      const MIN_SILENCE_FRAMES = 3
 
       const vad = await MicVAD.new({
-        frameSamples: 512,
+        frameSamples: 120,
         minSpeechFrames: 0,
         onFrameProcessed: (probabilities) => {
           const vadProb = probabilities.isSpeech
           const vadLevel = vadProb * 100
           setVadLevel(vadLevel)
 
-          if (vadLevel >= 20) {
+          if (vadLevel >= 42) {
             speechFrames++
             silenceFrames = 0
           } else {
@@ -384,8 +375,10 @@ export default function Voice({ roomId }: VoiceProps) {
           }
 
           if (speechFrames >= MIN_SPEECH_FRAMES) {
+            producerRef.current?.resume()
             sendTrack.enabled = true
           } else if (silenceFrames >= MIN_SILENCE_FRAMES) {
+            producerRef.current?.pause()
             sendTrack.enabled = false
           }
         },

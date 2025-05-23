@@ -17,7 +17,7 @@ export const useMainSocketStore = create<SocketStore>((set) => ({
   socket: null,
   url: null,
   connect: (url) => {
-    const socketInstance = io(`${url}/api/main`, {
+    const socketInstance = io(url + `/api/main`, {
       withCredentials: true,
       transports: ['websocket', 'polling'],
     })

@@ -2,7 +2,8 @@ export const sessionOptions = {
   password: 'vHwv2rwmNpKGJLUuCCMjsAcyPNAdwByZ', // строка ≥ 32 байт
   cookieName: 'myapp_session',
   cookieOptions: {
-    secure: process.env.NODE_ENV === 'production', // в проде — по HTTPS
+    domain: '.ed4m.ru',
+    secure: true, // в проде — по HTTPS
     httpOnly: true,
     sameSite: 'Strict',
     path: '/',

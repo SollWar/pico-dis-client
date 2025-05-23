@@ -1,0 +1,9 @@
+services:
+  nextjs:
+    image: pico-dis-client
+    build: .
+    ports:
+      - '3004:3000'
+    env_file:
+      - .env
+    restart: always

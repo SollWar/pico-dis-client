@@ -29,10 +29,10 @@ const Login = () => {
     e.preventDefault()
     setProcess(true)
     setError('') // Сбрасываем предыдущую ошибку
-
     try {
       await login(userLogin, password)
       router.replace('/main')
+      console.log('Login!')
     } catch (error) {
       let errorMessage = ''
       if (error instanceof Error) {

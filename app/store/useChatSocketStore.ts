@@ -23,7 +23,7 @@ export const useChatSocketStore = create<SocketStore>((set, get) => ({
     if (socket) {
       socket.disconnect()
     }
-    const socketInstance = io('http://localhost:3001/api/chat', {
+    const socketInstance = io(process.env.NEXT_PUBLIC_API_URL + '/api/chat', {
       withCredentials: true,
       transports: ['websocket', 'polling'],
     })
