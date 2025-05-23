@@ -318,7 +318,7 @@ export default function Voice({ roomId }: VoiceProps) {
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           channelCount: { ideal: 1 },
-          noiseSuppression: { ideal: false },
+          noiseSuppression: { ideal: true },
           echoCancellation: { ideal: false },
           autoGainControl: { ideal: false },
           // sampleRate: { ideal: 48000 },
@@ -353,33 +353,33 @@ export default function Voice({ roomId }: VoiceProps) {
       const sendTrack = destination.stream.getAudioTracks()[0]
       sendTrackRef.current = sendTrack
 
-      let speechFrames = 0
+      //let speechFrames = 0
       let silenceFrames = 0
-      const MIN_SPEECH_FRAMES = 3
-      const MIN_SILENCE_FRAMES = 3
+      //const MIN_SPEECH_FRAMES = 1
+      const MIN_SILENCE_FRAMES = 22
 
       const vad = await MicVAD.new({
-        frameSamples: 120,
+        frameSamples: 256,
         minSpeechFrames: 0,
         onFrameProcessed: (probabilities) => {
           const vadProb = probabilities.isSpeech
           const vadLevel = vadProb * 100
           setVadLevel(vadLevel)
 
-          if (vadLevel >= 42) {
-            speechFrames++
+          if (vadLevel >= 4) {
+            //speechFrames++
             silenceFrames = 0
           } else {
             silenceFrames++
-            speechFrames = 0
+            //speechFrames = 0
           }
 
-          if (speechFrames >= MIN_SPEECH_FRAMES) {
-            producerRef.current?.resume()
-            sendTrack.enabled = true
-          } else if (silenceFrames >= MIN_SILENCE_FRAMES) {
+          if (silenceFrames >= MIN_SILENCE_FRAMES) {
             producerRef.current?.pause()
-            sendTrack.enabled = false
+            //sendTrack.enabled = false
+          } else if (vadLevel >= 4) {
+            producerRef.current?.resume()
+            //sendTrack.enabled = true
           }
         },
       })
@@ -448,6 +448,10 @@ export default function Voice({ roomId }: VoiceProps) {
             />
           ) : (
             <Image
+              style={{
+                background: producerRef.current?.paused ? 'white' : 'green',
+              }}
+              className=" bg-[green] rounded-2xl"
               src="/mic_on.svg"
               alt="Выключить микрофон"
               width={26}
