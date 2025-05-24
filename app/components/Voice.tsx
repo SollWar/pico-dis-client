@@ -7,6 +7,7 @@ import { useUserVoiceStore } from '../store/useUserVoiceStore'
 import { useUserDataStore } from '../store/useUserDataStore'
 import { MicVAD } from '@ricky0123/vad-web'
 import { Producer } from 'mediasoup-client/types'
+import { useUserSpeakStore } from '../store/useUserSpeakStore'
 
 // STUN servers
 const ICE_SERVERS = [{ urls: 'stun:stun.l.google.com:19302' }]
@@ -40,12 +41,27 @@ export default function Voice({ roomId }: VoiceProps) {
   const audioContextRef = useRef<AudioContext>(null)
   const rnnoiseNodeRef = useRef<InstanceType<typeof window.RNNoiseNode>>(null)
 
-  const { getRoomNameFromId } = useUserDataStore()
+  const { getRoomNameFromId, user } = useUserDataStore()
   const [roomName, setRoomName] = useState('')
 
   const { addConsumer, addGainNodes, clearAll } = useUserVoiceStore()
 
   const [vadLevel, setVadLevel] = useState<number>(0)
+
+  const recvTransportsRef = useRef<mediasoupClient.types.Transport[]>([])
+  const consumersRef = useRef<mediasoupClient.types.Consumer[]>([])
+  const audioElementsRef = useRef<HTMLAudioElement[]>([])
+
+  const { speakUsers, setSpeakUsers } = useUserSpeakStore()
+
+  function visibilityHandler() {
+    if (
+      document.visibilityState === 'visible' &&
+      audioContextRef.current?.state === 'suspended'
+    ) {
+      audioContextRef.current.resume().catch(console.warn)
+    }
+  }
 
   const toggleVolume = async () => {
     setIsVolMuted(!isVolMuted)
@@ -67,6 +83,11 @@ export default function Voice({ roomId }: VoiceProps) {
         sendTrackRef.current!.enabled = false
         setVadLevel(0)
         setIsMicMuted(true)
+        socketRef.current?.emit('producerPaused', {
+          userRoomId: roomId,
+          userId: user?.id,
+          paused: true,
+        })
       }
     } catch (error) {
       console.error('Ошибка переключения микрофона:', error)
@@ -187,9 +208,16 @@ export default function Voice({ roomId }: VoiceProps) {
               connectSound.current!.play().catch(() => {})
             }
           })
-          socket.on('userDisconnected', ({ userRoomId }) => {
+          socket.on('userDisconnected', ({ userRoomId, userId }) => {
             if (userRoomId === roomId) {
               disconnectSound.current!.play().catch(() => {})
+              setSpeakUsers(userId, true)
+              console.log(userId)
+            }
+          })
+          socket.on('producerPaused', ({ userRoomId, userId, paused }) => {
+            if (userRoomId === roomId) {
+              setSpeakUsers(userId, paused)
             }
           })
 
@@ -249,12 +277,16 @@ export default function Voice({ roomId }: VoiceProps) {
           'recv'
         )
 
+        recvTransportsRef.current.push(recvTransport)
+
         const consumer = await recvTransport.consume({
           id: consumerId,
           producerId: pid,
           kind,
           rtpParameters,
         })
+
+        consumersRef.current.push(consumer)
 
         const ctx = audioContextRef.current!
         const mediaStream = new MediaStream([consumer.track]) // создаём один раз
@@ -271,6 +303,7 @@ export default function Voice({ roomId }: VoiceProps) {
         const audio = new Audio()
         audio.srcObject = mediaStream
         //await audio.play()
+        audioElementsRef.current.push(audio)
 
         // сохраняем GainNode для изменения громкости
         addConsumer({ user_id: consumeParams.user_id, id: consumerId, gain: 1 })
@@ -332,15 +365,7 @@ export default function Voice({ roomId }: VoiceProps) {
         new MediaStream([track])
       )
 
-      document.addEventListener('visibilitychange', () => {
-        console.log('Засыпает!...')
-        if (
-          document.visibilityState === 'visible' &&
-          audioContextRef.current?.state === 'suspended'
-        ) {
-          audioContextRef.current.resume().catch(console.warn)
-        }
-      })
+      document.addEventListener('visibilitychange', visibilityHandler)
 
       rnnoiseNodeRef.current = new window.RNNoiseNode(audioContextRef.current!)
       source.connect(rnnoiseNodeRef.current)
@@ -356,7 +381,7 @@ export default function Voice({ roomId }: VoiceProps) {
       //let speechFrames = 0
       let silenceFrames = 0
       //const MIN_SPEECH_FRAMES = 1
-      const MIN_SILENCE_FRAMES = 22
+      const MIN_SILENCE_FRAMES = 16
 
       const vad = await MicVAD.new({
         frameSamples: 256,
@@ -376,9 +401,19 @@ export default function Voice({ roomId }: VoiceProps) {
 
           if (silenceFrames >= MIN_SILENCE_FRAMES) {
             producerRef.current?.pause()
+            socketRef.current?.emit('producerPaused', {
+              userRoomId: roomId,
+              userId: user?.id,
+              paused: true,
+            })
             //sendTrack.enabled = false
           } else if (vadLevel >= 4) {
             producerRef.current?.resume()
+            socketRef.current?.emit('producerPaused', {
+              userRoomId: roomId,
+              userId: user?.id,
+              paused: false,
+            })
             //sendTrack.enabled = true
           }
         },
@@ -401,25 +436,47 @@ export default function Voice({ roomId }: VoiceProps) {
 
   const endCall = async () => {
     try {
-      // Остановка всех ресурсов
       console.log('End')
+
+      // 1. Уничтожаем VAD
       micVADRef.current?.destroy()
-      disconnectSound.current!.play().catch(() => {})
+      micVADRef.current = null
+
+      // 2. Останавливаем и сбрасываем все HTMLAudioElement
+      audioElementsRef.current.forEach((a) => {
+        a.pause()
+        a.srcObject = null
+      })
+      audioElementsRef.current = []
+
+      // 3. Закрываем все recvTransports и consumers
+      recvTransportsRef.current.forEach((t) => t.close())
+      consumersRef.current.forEach((c) => c.close())
+      recvTransportsRef.current = []
+      consumersRef.current = []
+
+      // 4. Очищаем стор
       clearAll()
+
+      // 5. Останавливаем локальный стрим и producer/sendTransport
       trackRef.current?.stop()
-      streamRef.current?.getTracks().forEach((track) => track.stop())
+      streamRef.current?.getTracks().forEach((t) => t.stop())
       sendTransportRef.current?.close()
       producerRef.current?.close()
-      await audioContextRef.current?.close()
-      socketRef.current?.disconnect()
 
-      // Сброс состояний
-      socketRef.current = null
-      deviceRef.current = null
-      sendTransportRef.current = null
-      producerRef.current = null
-      audioContextRef.current = null
+      // 6. Отключаем RNNoise и закрываем AudioContext
+      rnnoiseNodeRef.current?.disconnect()
       rnnoiseNodeRef.current = null
+      await audioContextRef.current?.close()
+      audioContextRef.current = null
+
+      // 7. Убираем все прослушиватели
+      socketRef.current?.off()
+      document.removeEventListener('visibilitychange', visibilityHandler)
+
+      // 8. Отключаемся от socket.io
+      socketRef.current?.disconnect()
+      socketRef.current = null
     } catch (error) {
       console.error('Ошибка завершения:', error)
     }

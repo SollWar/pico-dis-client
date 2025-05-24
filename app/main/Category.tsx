@@ -1,6 +1,7 @@
 import PopoverMenu from '../components/PopoverMenu'
 import { useIdsHelperStore } from '../store/useIdsHelperStore'
 import { useUserDataStore } from '../store/useUserDataStore'
+import { useUserSpeakStore } from '../store/useUserSpeakStore'
 import { useUserVoiceStore } from '../store/useUserVoiceStore'
 import { getRoomsByType, Room, RoomType } from '../types'
 
@@ -32,6 +33,7 @@ const Category = ({
   const { user } = useUserDataStore()
   const { consumers, changeGainNodes } = useUserVoiceStore()
   const { getLoginFromId } = useIdsHelperStore()
+  const { speakUsers } = useUserSpeakStore()
 
   const handleGainChange = (id: string, value: number) => {
     changeGainNodes(id, value)
@@ -66,7 +68,12 @@ const Category = ({
                             className="mb-0.5 ms-8 me-2.5 border-1 w-[207px]"
                             style={{
                               height: '30px',
-                              background: userId === user?.id ? '#2B7FFF' : '',
+                              background:
+                                userId === user?.id
+                                  ? '#2B7FFF'
+                                  : speakUsers[userId]
+                                  ? ''
+                                  : 'green',
                               color: userId === user?.id ? 'white' : '',
                               border: 'solid 1px black',
                             }}
